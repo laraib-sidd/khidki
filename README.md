@@ -1,13 +1,33 @@
 # Khidki
 
-Personal Android app: an authenticated SMS command opens a short window and forwards matching OTP-shaped messages back to the same trusted number. No server. Not on Google Play.
+Personal Android app: send `req <8-digit-password>` from a trusted number to open a short window; matching OTP-shaped SMS is forwarded back to that same number. No server.
 
-This repository is private. Sideload the `preview` APK from GitHub Releases. GitHub Releases is not an app store, so Android 15+ still treats SMS as a restricted setting.
+**Not on Google Play.** Install the debug APK from [GitHub Releases `preview`](https://github.com/laraib-sidd/khidki/releases/tag/preview) (private repo — Laraib shares the file).
 
-## For the worker
+## Install (sideload)
 
-Start at [`WORKER.md`](WORKER.md). Locked product decisions: [`docs/DECISIONS.md`](docs/DECISIONS.md). Execution tasks: [`docs/plans/2026-09-10-khidki-execution.md`](docs/plans/2026-09-10-khidki-execution.md).
+1. Download `app-debug.apk` from the `preview` release.
+2. Install (uninstall previous preview if signing changed).
+3. **Settings → Apps → Khidki → ⋮ → Allow restricted settings** (Android 15+).
+4. **Permissions → SMS → Allow**.
+5. Realme: **Auto-start** on, **Allow background activity**, battery unrestricted.
+6. Open Khidki, grant SMS if prompted, enable master switch.
 
-## For testers (Laraib / brother)
+## Use
 
-After CI publishes a release, install from https://github.com/laraib-sidd/khidki/releases/tag/preview and follow [`docs/PHYSICAL_TEST.md`](docs/PHYSICAL_TEST.md). Do not use live bank OTPs.
+1. **Configs** → add label, requester number (`+91…`), sender regex, content regex (e.g. `OTP`).
+2. Tap **Save & generate command** — copy `req XXXXXXXX` now (shown once).
+3. From the requester phone, SMS the command **before** the OTP you want forwarded.
+4. **Status** shows active window; matching SMS forwards automatically.
+
+## Development
+
+```bash
+./gradlew :app:testDebugUnitTest :app:assembleDebug
+```
+
+Docs: `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/PRIVACY.md`, `docs/COMPATIBILITY.md`, `docs/PHYSICAL_TEST.md`.
+
+Worker entry: `WORKER.md`. Locked decisions: `docs/DECISIONS.md`.
+
+**Never use live bank OTPs in tests.**

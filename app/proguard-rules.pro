@@ -1,0 +1,2 @@
+-keep class dev.laraib.khidki.data.db.** { *; }
+-keepclassmembers class * extends androidx.room.RoomDatabase { *; }
