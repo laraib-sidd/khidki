@@ -4,12 +4,15 @@ import dev.laraib.khidki.domain.model.AuditEvent
 import dev.laraib.khidki.domain.model.AuditEventType
 import dev.laraib.khidki.domain.ports.AuditStore
 import dev.laraib.khidki.platform.diagnostics.DiagnosticEventBus
+import dev.laraib.khidki.platform.notification.StatusNotifier
 
 class DiagnosticAuditStore(
     private val delegate: AuditStore,
+    private val statusNotifier: StatusNotifier? = null,
 ) : AuditStore {
     override fun record(event: AuditEvent) {
         DiagnosticEventBus.record(format(event))
+        statusNotifier?.onAuditEvent(event)
         delegate.record(event)
     }
 

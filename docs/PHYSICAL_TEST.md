@@ -6,11 +6,13 @@ Install the `preview` APK from the private GitHub Release. This is sideload, not
 
 ## Before any SMS
 
-1. Settings → Apps → Khidki → overflow → **Allow restricted settings**.
-2. Permissions → SMS → Allow.
-3. Realme: Auto-start = on, Allow background activity = on, battery optimization = unrestricted for Khidki.
-4. Open Khidki once. Grant SMS if prompted. Leave the UI.
-5. Confirm the phone is not the default SMS app. Do not make it the default SMS app.
+1. Install `app-debug.apk` from GitHub Releases tag `preview` (or `v1.0.0-preview` after release tag).
+2. Open Khidki. On the **Status** tab, follow the sideload pre-flight card:
+   - Tap **Open App Info** → overflow **⋮** → **Allow restricted settings**.
+   - Return to Khidki → tap **Grant SMS Permissions**.
+3. Realme GT 6T: Auto-start = on, Allow background activity = on, battery = **Unrestricted**.
+4. Confirm the phone is not the default SMS app. Do not make it the default SMS app.
+5. Keep the **Status → Event log** visible during trials. You should see `IN from ••••XXXX` lines without `adb logcat`.
 
 ## Trials
 
@@ -19,7 +21,7 @@ Use brother’s phone as the peer number. Never a live bank OTP.
 | ID | What to send / do | Phone state | Result (pass / fail / time) | Notes |
 |---|---|---|---|---|
 | P0 | Restricted settings + SMS grant | — | | |
-| P1 | Peer → GT 6T: `KHIDKI-M0-PLAIN 001` | Khidki not in front, screen on | | Must appear in Khidki log |
+| P1 | Peer → GT 6T: `KHIDKI-M0-PLAIN 001` | Khidki not in front, screen on | | Must appear in Status **Event log** |
 | P2 | Peer → GT 6T: `KHIDKI-M0-PLAIN 002` | Screen off | | |
 | P3 | Peer → GT 6T: `Your OTP is 482193. Do not share with anyone.` | UI closed | | **Product gate.** Fail here stops M1. |
 | P4 | Peer → GT 6T: `<#> 482193 XYZaBcdEfGh` | UI closed | | Retriever-shaped. Record even if delayed. |
