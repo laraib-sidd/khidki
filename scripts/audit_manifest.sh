@@ -14,6 +14,9 @@ MERGED_CANDIDATES=(
   "$ROOT/app/build/intermediates/merged_manifest/debug/processDebugMainManifest/AndroidManifest.xml"
   "$ROOT/app/build/intermediates/merged_manifests/debug/processDebugManifest/AndroidManifest.xml"
   "$ROOT/app/build/intermediates/packaged_manifests/debug/processDebugManifestForPackage/AndroidManifest.xml"
+  "$ROOT/app/build/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml"
+  "$ROOT/app/build/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml"
+  "$ROOT/app/build/intermediates/packaged_manifests/release/processReleaseManifestForPackage/AndroidManifest.xml"
 )
 
 MERGED_MANIFEST=""
@@ -25,7 +28,7 @@ for candidate in "${MERGED_CANDIDATES[@]}"; do
 done
 
 if [[ -z "$MERGED_MANIFEST" ]]; then
-  echo "FAIL: No merged debug manifest found. Run ./gradlew :app:assembleDebug first."
+  echo "FAIL: No merged manifest found. Run ./gradlew :app:assembleDebug or :app:assembleRelease first."
   exit 1
 fi
 
