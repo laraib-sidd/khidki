@@ -56,6 +56,10 @@ Update `docs/MODEL_MEMORY.md` before switching models or ending a work session.
 
 ## Releases
 
-- `main` push publishes `preview` debug APK to GitHub Releases.
-- Version tags `v*` publish a named release.
+See `docs/RELEASE.md` for the full runbook.
+
+- **Rolling preview**: `preview` tag on GitHub Releases — auto-published after `ci` passes on `main`.
+- **Versioned snapshots**: push a `v*` git tag for immutable milestone releases.
+- APKs are named `khidki-<version>-debug-b<build>-<sha>.apk` with `.sha256` checksums.
+- Install target for device testing: **Khidki preview (rolling)** — not legacy `v1.0.0-preview` unless pinned.
 - Debug APKs use the committed deterministic keystore in `app/debug-keystore/` unless `KHIDKI_PREVIEW_KEYSTORE_BASE64` is set in GitHub secrets.

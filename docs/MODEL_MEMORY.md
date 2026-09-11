@@ -207,5 +207,25 @@ bash scripts/audit_manifest.sh   # after assembleDebug if needed
 - **Install**: GitHub Releases `preview` APK (auto-builds on `main` push) or sideload from Actions artifact.
 - **Test focus**: Config FAB bottom sheet + keyboard, command copy dialog, Status countdown, History readability, Settings regex tester.
 
+---
+
+## 10. Release Pipeline Fix — Production Standard (2026-09-11 14:30 IST)
+
+### Root cause (why owner didn't see latest build):
+- GitHub marked **`v1.0.0-preview` as Latest** with a stale APK (pre–Phase 6, 05:25 UTC).
+- The **rolling `preview` channel** had the current APK (updated 07:47 UTC) but was buried as a pre-release with generic `app-debug.apk` filename.
+- Owner clicked Latest → got old build.
+
+### Fix shipped:
+1. **CI-gated releases**: `release` workflow now triggers via `workflow_run` after `ci` succeeds on `main` (no parallel ungated publish).
+2. **Traceable artifacts**: `scripts/prepare_release_apk.sh` → `khidki-<version>-debug-b<build>-<sha>.apk` + `.sha256` + `release-metadata.json`.
+3. **Release notes**: `scripts/generate_release_notes.sh` auto-generates install instructions with commit + workflow run.
+4. **Rolling preview is Latest**: `make_latest: true`, `overwrite_files: true` on `preview` tag.
+5. **Version bump**: `1.1.0` with CI-driven `versionCode` (`GITHUB_RUN_NUMBER`) for sideload updates.
+6. **Docs**: `docs/RELEASE.md` runbook added; `PHYSICAL_TEST.md` points to rolling preview only.
+
+### Install target for owner:
+- GitHub Releases → **Khidki preview (rolling)** → download `khidki-1.1.0-debug-b*.apk`
+
 
 

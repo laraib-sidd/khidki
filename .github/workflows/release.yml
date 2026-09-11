@@ -1,24 +1,52 @@
 name: release
 
 on:
-  push:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
     branches: [main]
+  push:
     tags: ["v*"]
   workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.event.workflow_run.head_branch || github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-and-release:
+    if: >
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      startsWith(github.ref, 'refs/tags/v') ||
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    env:
+      KHIDKI_RELEASE_CHANNEL: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'preview' }}
     steps:
+      - name: Resolve checkout ref
+        id: checkout_ref
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "ref=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.checkout_ref.outputs.ref }}
+          fetch-depth: 0
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
+
       - uses: android-actions/setup-android@v3
+
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -27,6 +55,14 @@ jobs:
             ~/.gradle/wrapper
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', 'gradle/libs.versions.toml') }}
           restore-keys: gradle-${{ runner.os }}-
+
+      - name: Extract version metadata
+        id: version
+        run: |
+          VERSION_NAME=$(grep 'versionName' app/build.gradle.kts | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+          echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "code=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
       - name: Decode preview keystore override if present
         env:
           KEYSTORE_B64: ${{ secrets.KHIDKI_PREVIEW_KEYSTORE_BASE64 }}
@@ -38,26 +74,68 @@ jobs:
           else
             echo "Using committed deterministic debug keystore."
           fi
-      - run: chmod +x gradlew scripts/audit_manifest.sh
-      - run: ./gradlew :app:testDebugUnitTest :app:assembleDebug --stacktrace
+
+      - run: chmod +x gradlew scripts/audit_manifest.sh scripts/prepare_release_apk.sh scripts/generate_release_notes.sh
+
+      - name: Build and test
+        env:
+          KHIDKI_VERSION_CODE: ${{ github.run_number }}
+        run: ./gradlew :app:testDebugUnitTest :app:assembleDebug --stacktrace
+
       - run: bash scripts/audit_manifest.sh
-      - name: Publish preview APK
-        if: github.ref == 'refs/heads/main'
+
+      - name: Package release artifacts
+        id: package
+        env:
+          KHIDKI_VERSION_NAME: ${{ steps.version.outputs.name }}
+          KHIDKI_VERSION_CODE: ${{ steps.version.outputs.code }}
+          KHIDKI_RELEASE_CHANNEL: ${{ env.KHIDKI_RELEASE_CHANNEL }}
+        run: |
+          bash scripts/prepare_release_apk.sh
+          echo "apk_basename=$(jq -r .apkFile release-artifacts/release-metadata.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Generate release notes
+        id: notes
+        env:
+          KHIDKI_VERSION_NAME: ${{ steps.version.outputs.name }}
+          KHIDKI_VERSION_CODE: ${{ steps.version.outputs.code }}
+          KHIDKI_RELEASE_CHANNEL: ${{ env.KHIDKI_RELEASE_CHANNEL }}
+          APK_BASENAME: ${{ steps.package.outputs.apk_basename }}
+        run: |
+          NOTES_FILE=release-artifacts/RELEASE_NOTES.md
+          bash scripts/generate_release_notes.sh > "$NOTES_FILE"
+          echo "file=$NOTES_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Publish rolling preview release
+        if: env.KHIDKI_RELEASE_CHANNEL == 'preview'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: preview
-          name: Khidki preview
+          name: Khidki preview (rolling)
+          body_path: release-artifacts/RELEASE_NOTES.md
           prerelease: true
-          files: app/build/outputs/apk/debug/*.apk
+          make_latest: true
+          overwrite_files: true
+          files: |
+            release-artifacts/*.apk
+            release-artifacts/*.sha256
+            release-artifacts/release-metadata.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Publish versioned release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: Khidki ${{ github.ref_name }}
-          prerelease: false
-          files: app/build/outputs/apk/debug/*.apk
+          body_path: release-artifacts/RELEASE_NOTES.md
+          prerelease: ${{ contains(github.ref_name, 'preview') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
+          make_latest: ${{ !contains(github.ref_name, 'preview') && !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'alpha') }}
+          overwrite_files: true
+          files: |
+            release-artifacts/*.apk
+            release-artifacts/*.sha256
+            release-artifacts/release-metadata.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -2,11 +2,11 @@
 
 Worker never fills the Result column. Laraib or brother does.
 
-Install the `preview` APK from the private GitHub Release. This is sideload, not Play.
+Install the **rolling preview** APK from the private GitHub Release. This is sideload, not Play.
 
 ## Before any SMS
 
-1. Install `app-debug.apk` from GitHub Releases tag `preview` (or `v1.0.0-preview` after release tag).
+1. Install the latest `khidki-*-debug-b*.apk` from GitHub Releases → **Khidki preview (rolling)** (`preview` tag). Do **not** use the stale `v1.0.0-preview` milestone unless intentionally pinned.
 2. Open Khidki. On the **Status** tab, follow the sideload pre-flight card:
    - Tap **Open App Info** → overflow **⋮** → **Allow restricted settings**.
    - Return to Khidki → tap **Grant SMS Permissions**.

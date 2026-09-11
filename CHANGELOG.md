@@ -22,4 +22,15 @@ All notable changes to Khidki are documented here.
 
 ## [Unreleased]
 
-- Physical device validation on Realme GT 6T (Android 16)
+### Added
+- Phase 6 Material 3 UI/UX revamp (Status hero card, Config bottom sheet, History badges, Settings regex tester)
+- Production-standard release pipeline: CI-gated publish, traceable APK names, SHA256 checksums, release metadata
+
+### Changed
+- Version bumped to `1.1.0` with CI-driven `versionCode` for reliable sideload updates
+- Rolling `preview` release is now the default Latest install target
+
+## [1.1.0-preview] — 2026-09-11
+
+- Phase 6 UI/UX revamp merged to `main`
+- Production-standard CI-gated release pipeline with traceable APK artifacts
