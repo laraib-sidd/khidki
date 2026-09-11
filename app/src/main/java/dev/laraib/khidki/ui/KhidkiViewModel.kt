@@ -16,9 +16,12 @@ import dev.laraib.khidki.domain.model.FilterRules
 import dev.laraib.khidki.domain.model.HistoryEvent
 import dev.laraib.khidki.domain.model.PhoneNormalizeResult
 import dev.laraib.khidki.domain.phone.PhoneNormalizer
+import dev.laraib.khidki.platform.diagnostics.DiagnosticEventBus
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -41,6 +44,12 @@ class KhidkiViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _uiState = MutableStateFlow(KhidkiUiState())
     val uiState: StateFlow<KhidkiUiState> = _uiState.asStateFlow()
+
+    val diagnosticEvents: StateFlow<List<String>> = DiagnosticEventBus.events.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = emptyList(),
+    )
 
     fun refresh(hasSmsPermission: Boolean) {
         runtime.refreshAppState(hasSmsPermission)
@@ -69,8 +78,10 @@ class KhidkiViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun cancelActiveSession(hasSmsPermission: Boolean) {
-        runtime.engine.setAppState(dev.laraib.khidki.domain.model.AppState.PAUSED)
-        runtime.engine.setAppState(dev.laraib.khidki.domain.model.AppState.READY)
+        val cancelled = runtime.engine.cancelActiveWindow()
+        if (cancelled) {
+            DiagnosticEventBus.record("UI cancelled active window")
+        }
         refresh(hasSmsPermission)
     }
 
@@ -83,15 +94,21 @@ class KhidkiViewModel(application: Application) : AndroidViewModel(application) 
         onCommand: (String) -> Unit,
     ) {
         viewModelScope.launch {
+            val configCountError = ConfigurationValidator.validateConfigCount(_uiState.value.configurations.size)
+            if (configCountError != null) {
+                _uiState.value = _uiState.value.copy(errorMessage = configCountError)
+                return@launch
+            }
+            val patternError = ConfigurationValidator.validatePatterns(senderPattern, contentPattern)
+            if (patternError != null) {
+                _uiState.value = _uiState.value.copy(errorMessage = patternError)
+                return@launch
+            }
             val requester = normalizePhone(requesterRaw)
                 ?: run {
                     _uiState.value = _uiState.value.copy(errorMessage = "Invalid requester number")
                     return@launch
                 }
-            if (senderPattern.isBlank() || contentPattern.isBlank()) {
-                _uiState.value = _uiState.value.copy(errorMessage = "Sender and content filters are required")
-                return@launch
-            }
             val now = runtime.clock.nowMillis()
             val config = Configuration(
                 id = ConfigurationId(UUID.randomUUID()),
@@ -138,6 +155,10 @@ class KhidkiViewModel(application: Application) : AndroidViewModel(application) 
             Blocking.io { container.database.historyDao().deleteAll() }
             refresh(hasSmsPermission)
         }
+    }
+
+    fun clearDiagnosticEvents() {
+        DiagnosticEventBus.clear()
     }
 
     private fun normalizePhone(raw: String): CanonicalPhone? =

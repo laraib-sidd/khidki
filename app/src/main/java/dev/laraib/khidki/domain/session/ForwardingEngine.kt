@@ -266,6 +266,16 @@ class ForwardingEngine(
         return CandidateHandleResult.ForwardFailed
     }
 
+    fun cancelActiveWindow(): Boolean {
+        refreshSessions()
+        val session = sessionRepository.getActiveSession() ?: return false
+        if (!session.isActive) {
+            return false
+        }
+        terminateSession(session, TerminalOutcome.CANCELLED)
+        return true
+    }
+
     fun refreshSessions() {
         val session = sessionRepository.getActiveSession() ?: return
 

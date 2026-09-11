@@ -1,7 +1,11 @@
 package dev.laraib.khidki.ui
 
 import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -10,18 +14,20 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -36,14 +42,19 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import kotlin.math.max
 import dev.laraib.khidki.domain.model.Configuration
 import dev.laraib.khidki.domain.model.HistoryEvent
 import dev.laraib.khidki.platform.permission.PermissionGate
@@ -110,6 +121,8 @@ private fun KhidkiAppScreen(
     onRequestPermissions: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
+    val diagnosticEvents by viewModel.diagnosticEvents.collectAsState()
+    val context = LocalContext.current
     var tab by remember { mutableIntStateOf(0) }
     var revealedCommand by remember { mutableStateOf<String?>(null) }
 
@@ -154,17 +167,25 @@ private fun KhidkiAppScreen(
                 Spacer(Modifier.height(8.dp))
             }
             when (tab) {
-                0 -> StatusTab(state, viewModel, hasSmsPermission)
+                0 -> StatusTab(state, viewModel, hasSmsPermission, diagnosticEvents)
                 1 -> ConfigTab(state, viewModel, hasSmsPermission) { revealedCommand = it }
                 2 -> HistoryTab(state, viewModel, hasSmsPermission)
                 3 -> SettingsTab(state, viewModel, hasSmsPermission)
             }
             revealedCommand?.let { cmd ->
                 Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                    Column(Modifier.padding(16.dp)) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Command (copy now — not shown again)")
                         Text(cmd, style = MaterialTheme.typography.titleMedium)
-                        Button(onClick = { revealedCommand = null }) { Text("Dismiss") }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = {
+                                    copyToClipboard(context, cmd)
+                                    Toast.makeText(context, "Command copied", Toast.LENGTH_SHORT).show()
+                                },
+                            ) { Text("Copy Command") }
+                            Button(onClick = { revealedCommand = null }) { Text("Dismiss") }
+                        }
                     }
                 }
             }
@@ -173,7 +194,12 @@ private fun KhidkiAppScreen(
 }
 
 @Composable
-private fun StatusTab(state: KhidkiUiState, viewModel: KhidkiViewModel, hasSms: Boolean) {
+private fun StatusTab(
+    state: KhidkiUiState,
+    viewModel: KhidkiViewModel,
+    hasSms: Boolean,
+    diagnosticEvents: List<String>,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("Master")
@@ -185,13 +211,54 @@ private fun StatusTab(state: KhidkiUiState, viewModel: KhidkiViewModel, hasSms: 
         Text("State: ${state.appStateLabel}")
         state.activeSession?.let { session ->
             Text("Active: ${session.label}")
-            Text("Expires: ${session.expiresAtMillis}")
+            SessionCountdown(expiresAtMillis = session.expiresAtMillis)
             Text("Window: ${session.windowSeconds}s")
+            Button(
+                onClick = { viewModel.cancelActiveSession(hasSms) },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                ),
+            ) { Text("Cancel Active Window") }
         } ?: Text("No active window")
         if (state.errorMessage != null) {
             Text(state.errorMessage!!, color = MaterialTheme.colorScheme.error)
         }
+        Text("Event log", style = MaterialTheme.typography.titleSmall)
+        Button(onClick = { viewModel.clearDiagnosticEvents() }) { Text("Clear log") }
+        Card(Modifier.fillMaxWidth().height(160.dp)) {
+            Column(
+                Modifier
+                    .padding(8.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                if (diagnosticEvents.isEmpty()) {
+                    Text("No events yet. Send a test SMS to see activity.")
+                } else {
+                    diagnosticEvents.asReversed().forEach { event ->
+                        Text(event, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
     }
+}
+
+@Composable
+private fun SessionCountdown(expiresAtMillis: Long) {
+    var remainingMillis by remember(expiresAtMillis) {
+        mutableLongStateOf(max(0L, expiresAtMillis - System.currentTimeMillis()))
+    }
+    LaunchedEffect(expiresAtMillis) {
+        while (remainingMillis > 0L) {
+            delay(1_000)
+            remainingMillis = max(0L, expiresAtMillis - System.currentTimeMillis())
+        }
+    }
+    val totalSeconds = remainingMillis / 1_000L
+    val minutes = totalSeconds / 60L
+    val seconds = totalSeconds % 60L
+    Text("Time remaining: %02d:%02d".format(minutes, seconds))
 }
 
 @Composable
@@ -211,6 +278,9 @@ private fun ConfigTab(
         OutlinedTextField(value = requester, onValueChange = { requester = it }, label = { Text("Requester (+91…)") })
         OutlinedTextField(value = sender, onValueChange = { sender = it }, label = { Text("Sender filter (regex)") })
         OutlinedTextField(value = content, onValueChange = { content = it }, label = { Text("Content filter (regex)") })
+        if (state.errorMessage != null) {
+            Text(state.errorMessage!!, color = MaterialTheme.colorScheme.error)
+        }
         Button(
             onClick = {
                 viewModel.saveConfiguration(label, requester, sender, content, hasSms, onCommand)
@@ -294,4 +364,9 @@ private fun PermissionPreflightCard(
 private fun maskPhone(e164: String): String {
     if (e164.length < 6) return "••••"
     return e164.take(3) + "•••" + e164.takeLast(2)
+}
+
+private fun copyToClipboard(context: Context, text: String) {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    clipboard.setPrimaryClip(ClipData.newPlainText("khidki-command", text))
 }
