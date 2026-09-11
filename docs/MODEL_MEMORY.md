@@ -302,5 +302,26 @@ bash scripts/audit_manifest.sh   # after assembleDebug if needed
 - Gates: `./gradlew :app:testDebugUnitTest --quiet` + `bash scripts/audit_manifest.sh`.
 - Append completion log here (append-only); update `docs/COORDINATION.md` §4/§6 when done.
 
+---
+
+## 13. Phase 7 Completion — Timed Forwarding Window (2026-09-11 18:55 IST)
+
+### From: Worker → To: Owner. Author: (Laraib).
+
+### Delivered
+- **Domain:** `SessionOrigin` (`REQUEST` | `TIMED`), `armTimedWindow` / `cancelTimedWindow`,
+  multi-forward for TIMED (session stays `ARMED`, `forwardCount` increments), audit types
+  `TIMED_ARMED` / `TIMED_CANCELLED` / `TIMED_EXPIRED`.
+- **Data:** Room DB v2 — `sessions.origin`, `sessions.forwardCount`; `KhidkiMigrations.MIGRATION_1_2`.
+- **UI:** `TimedForwardingCard` on Status (config dropdown, 15/30/60/120m chips, credential-gated switch);
+  `EditRuleBottomSheet` on Configs (number change voids credentials + regenerates `req` code);
+  History labels/badges; `StatusNotifier` for timed arm/forward/expiry.
+- **Verified:** `./gradlew :app:testDebugUnitTest` — **69 tests green**; `bash scripts/audit_manifest.sh` — **PASS** (no `INTERNET`).
+
+### Branch / next
+- Branch: `feat/timed-forwarding-window` (uncommitted changes — owner may commit + `gh pr create`).
+- **Physical gate (P3):** Path B in `docs/PHYSICAL_TEST.md` — Master ON → timed arm 15m → Blinkit OTP → verify forward to Chotu.
+- `req` path and single-forward REQUEST semantics unchanged; `req` during timed window → `IgnoredActiveSession`.
+
 
 

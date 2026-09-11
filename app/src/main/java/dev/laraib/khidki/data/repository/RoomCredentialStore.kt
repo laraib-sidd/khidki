@@ -42,6 +42,10 @@ class RoomCredentialStore(
         credentialDao.deleteExpired(nowMillis)
     }
 
+    suspend fun revokeForConfiguration(configurationId: ConfigurationId) {
+        credentialDao.deleteForConfiguration(configurationId.toString())
+    }
+
     private companion object {
         const val MAX_LIVE_CREDENTIALS_PER_REQUESTER = 5
     }

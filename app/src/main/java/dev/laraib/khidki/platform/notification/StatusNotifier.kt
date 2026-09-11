@@ -25,6 +25,18 @@ class StatusNotifier(
                 title = "Khidki forwarded SMS",
                 body = "A matching message was forwarded to the requester.",
             )
+            AuditEventType.TIMED_ARMED -> notify(
+                title = "Khidki timed window armed",
+                body = "Forwarding window is active until expiry.",
+            )
+            AuditEventType.TIMED_CANCELLED -> notify(
+                title = "Khidki timed window cancelled",
+                body = "Timed forwarding was stopped.",
+            )
+            AuditEventType.TIMED_EXPIRED -> notify(
+                title = "Khidki timed window expired",
+                body = "Timed forwarding has ended.",
+            )
             else -> Unit
         }
     }

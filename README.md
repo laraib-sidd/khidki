@@ -2,7 +2,7 @@
 
 Personal Android app: a trusted requester opens a short forwarding window; matching OTP-shaped **SMS** is forwarded back to that same number. No server.
 
-**Not on Google Play.** Install from [GitHub Releases → Khidki preview (rolling)](https://github.com/laraib-sidd/khidki/releases/tag/preview) (private repo).
+**Not on Google Play.** Install from [GitHub Releases](https://github.com/laraib-sidd/khidki/releases) — **Latest** or [`preview`](https://github.com/laraib-sidd/khidki/releases/tag/preview) (private repo). Each `main` push also creates an immutable `build/b<N>` tag for tracking.
 
 ## Install (sideload)
 

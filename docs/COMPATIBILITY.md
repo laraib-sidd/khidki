@@ -18,7 +18,7 @@ Last verified: 2026-09-11 (CI + partial physical GT 6T).
 - Workflows: `ci` (PR + main), `release` (after green CI on main, or `v*` tags)
 - Command: `./gradlew :app:testDebugUnitTest :app:assembleDebug`
 - Unit tests: **62 passed** (2026-09-11)
-- APK artifact: `khidki-<version>-debug-b<build>-<sha>.apk` via `preview` release
+- APK artifact: `khidki-<version>-debug-b<build>-<sha>.apk` via `build/b<N>` (immutable) and `preview` (rolling alias)
 
 ## Message transport matrix
 

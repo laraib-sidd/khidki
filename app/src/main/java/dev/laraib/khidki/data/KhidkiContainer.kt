@@ -3,6 +3,7 @@ package dev.laraib.khidki.data
 import android.content.Context
 import androidx.room.Room
 import dev.laraib.khidki.data.db.KhidkiDatabase
+import dev.laraib.khidki.data.db.KhidkiMigrations
 import dev.laraib.khidki.data.keystore.KeystoreCredentialVerifier
 import dev.laraib.khidki.data.prefs.AppPreferences
 import dev.laraib.khidki.data.ports.PersistenceAuditStore
@@ -46,6 +47,7 @@ class KhidkiContainer private constructor(
                 KhidkiDatabase::class.java,
                 DATABASE_NAME,
             )
+                .addMigrations(KhidkiMigrations.MIGRATION_1_2)
                 .fallbackToDestructiveMigration()
                 .build()
 

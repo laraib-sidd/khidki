@@ -1,4 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Khidki</string>
+    <string name="timed_forwarding_title">Timed forwarding</string>
+    <string name="timed_forwarding_subtitle">Arm a window without sending a req SMS. Requires device unlock.</string>
+    <string name="timed_forwarding_no_config">Add a forwarding rule on the Configs tab first.</string>
+    <string name="timed_forwarding_active_hint">Timed window is active — see the card below.</string>
+    <string name="timed_forwarding_blocked_active_session">Another forwarding window is already active.</string>
+    <string name="timed_forwarding_config_label">Forwarding rule</string>
+    <string name="timed_forwarding_duration_label">Duration</string>
+    <string name="timed_forwarding_switch_label">Enable timed forwarding</string>
+    <string name="timed_forwarding_credential_title">Confirm timed forwarding</string>
+    <string name="timed_forwarding_credential_subtitle">Use your device PIN, pattern, or biometrics.</string>
+    <string name="timed_forwarding_master_off">Turn on Master forwarding first.</string>
+    <string name="timed_forwarding_no_credential">Set a screen lock to use timed forwarding.</string>
+    <string name="timed_forwarding_arm_failed">Could not arm timed window</string>
+    <string name="edit_rule_title">Edit forwarding rule</string>
+    <string name="edit_rule_save">Save changes</string>
+    <string name="edit_rule_save_regenerate">Save &amp; regenerate access code</string>
 </resources>

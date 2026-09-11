@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,6 +37,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
+import dev.laraib.khidki.R
+import dev.laraib.khidki.domain.model.CredentialPolicy
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -48,6 +52,7 @@ import dev.laraib.khidki.ui.KhidkiUiState
 import dev.laraib.khidki.ui.KhidkiViewModel
 import dev.laraib.khidki.ui.components.ConfirmDeleteDialog
 import dev.laraib.khidki.ui.components.UiUtils
+import dev.laraib.khidki.ui.theme.StatusAmber
 import dev.laraib.khidki.ui.theme.StatusGreen
 import dev.laraib.khidki.ui.theme.StatusGreenBg
 import dev.laraib.khidki.ui.theme.StatusRed
@@ -79,6 +84,7 @@ fun ConfigsScreen(
     modifier: Modifier = Modifier,
 ) {
     var showAddSheet by remember { mutableStateOf(false) }
+    var editingConfig by remember { mutableStateOf<Configuration?>(null) }
     var pendingDelete by remember { mutableStateOf<Configuration?>(null) }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -118,6 +124,7 @@ fun ConfigsScreen(
                     items(state.configurations, key = { it.id.uuid }) { config ->
                         ConfigRuleCard(
                             config = config,
+                            onEdit = { editingConfig = config },
                             onDelete = { pendingDelete = config },
                         )
                     }
@@ -133,6 +140,30 @@ fun ConfigsScreen(
         ) {
             Icon(Icons.Default.Add, contentDescription = "Add rule")
         }
+    }
+
+    editingConfig?.let { config ->
+        EditRuleBottomSheet(
+            config = config,
+            errorMessage = state.errorMessage,
+            hasSmsPermission = hasSmsPermission,
+            onDismiss = { editingConfig = null },
+            onSave = { label, requester, sender, content, windowSeconds ->
+                viewModel.updateConfiguration(
+                    id = config.id,
+                    label = label,
+                    requesterRaw = requester,
+                    senderPattern = sender,
+                    contentPattern = content,
+                    windowSeconds = windowSeconds,
+                    hasSmsPermission = hasSmsPermission,
+                    onCommand = { command ->
+                        editingConfig = null
+                        onCommandRevealed(command)
+                    },
+                )
+            },
+        )
     }
 
     if (showAddSheet) {
@@ -165,6 +196,7 @@ fun ConfigsScreen(
 @Composable
 private fun ConfigRuleCard(
     config: Configuration,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -184,6 +216,9 @@ private fun ConfigRuleCard(
                         style = MaterialTheme.typography.labelSmall,
                         color = if (config.enabled) StatusGreen else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    IconButton(onClick = onEdit) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit rule")
+                    }
                     IconButton(onClick = onDelete) {
                         Icon(Icons.Default.Delete, contentDescription = "Delete rule")
                     }
@@ -206,6 +241,145 @@ private fun ConfigRuleCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun EditRuleBottomSheet(
+    config: Configuration,
+    errorMessage: String?,
+    hasSmsPermission: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (label: String, requester: String, sender: String, content: String, windowSeconds: Int) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var label by remember(config.id) { mutableStateOf(config.label) }
+    var requester by remember(config.id) { mutableStateOf(config.requester.e164) }
+    var sender by remember(config.id) { mutableStateOf(config.filterRules.senderPatterns.firstOrNull() ?: "") }
+    var content by remember(config.id) { mutableStateOf(config.filterRules.contentPatterns.firstOrNull() ?: "") }
+    var windowMinutes by remember(config.id) {
+        mutableStateOf((config.windowSeconds / 60).coerceAtLeast(1).toString())
+    }
+    val phoneNormalizer = remember { PhoneNormalizer() }
+    val phoneValid = remember(requester) {
+        when (phoneNormalizer.normalize(requester)) {
+            is PhoneNormalizeResult.Success -> true
+            else -> requester.isBlank()
+        }
+    }
+    val patternError = remember(sender, content) {
+        ConfigurationValidator.validatePatterns(sender, content)
+    }
+    val windowSeconds = windowMinutes.toIntOrNull()?.times(60)
+    val windowValid =
+        windowSeconds != null &&
+            windowSeconds in CredentialPolicy.MIN_WINDOW_SECONDS..CredentialPolicy.MAX_WINDOW_SECONDS
+    val requesterChanged = remember(requester, config.requester.e164) {
+        phoneNormalizer.normalize(requester).let { result ->
+            result is PhoneNormalizeResult.Success && result.phone.e164 != config.requester.e164
+        }
+    }
+    val canSave =
+        label.isNotBlank() &&
+            requester.isNotBlank() &&
+            phoneValid &&
+            patternError == null &&
+            windowValid &&
+            hasSmsPermission
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(stringResource(R.string.edit_rule_title), style = MaterialTheme.typography.titleLarge)
+            OutlinedTextField(
+                value = label,
+                onValueChange = { label = it },
+                label = { Text("Label") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = requester,
+                onValueChange = { requester = it },
+                label = { Text("Requester phone") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                supportingText = {
+                    if (requesterChanged) {
+                        Text(
+                            "Changing the number voids credentials and generates a new access code",
+                            color = StatusAmber,
+                        )
+                    }
+                },
+            )
+            OutlinedTextField(
+                value = sender,
+                onValueChange = { sender = it },
+                label = { Text("Sender filter (regex)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = content,
+                onValueChange = { content = it },
+                label = { Text("Content filter (regex)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = windowMinutes,
+                onValueChange = { windowMinutes = it.filter { ch -> ch.isDigit() } },
+                label = { Text("Req window (minutes)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                supportingText = {
+                    Text(
+                        "Used for req SMS ack window (${CredentialPolicy.MIN_WINDOW_SECONDS / 60}–" +
+                            "${CredentialPolicy.MAX_WINDOW_SECONDS / 60} min)",
+                    )
+                },
+            )
+            ValidationBanner(patternError = patternError, atLimit = false)
+            if (!windowValid) {
+                Text(
+                    "Window must be ${CredentialPolicy.MIN_WINDOW_SECONDS / 60}–" +
+                        "${CredentialPolicy.MAX_WINDOW_SECONDS / 60} minutes",
+                    color = StatusRed,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            errorMessage?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+            TextButton(
+                onClick = {
+                    val seconds = windowSeconds ?: return@TextButton
+                    onSave(label, requester, sender, content, seconds)
+                },
+                enabled = canSave,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    if (requesterChanged) {
+                        stringResource(R.string.edit_rule_save_regenerate)
+                    } else {
+                        stringResource(R.string.edit_rule_save)
+                    },
+                )
+            }
         }
     }
 }

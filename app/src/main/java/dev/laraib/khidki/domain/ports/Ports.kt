@@ -5,6 +5,7 @@ import dev.laraib.khidki.domain.model.AuthResult
 import dev.laraib.khidki.domain.model.AuthorizationSession
 import dev.laraib.khidki.domain.model.CanonicalPhone
 import dev.laraib.khidki.domain.model.Configuration
+import dev.laraib.khidki.domain.model.ConfigurationId
 import dev.laraib.khidki.domain.model.FilterRules
 import dev.laraib.khidki.domain.model.RuleMatchResult
 import dev.laraib.khidki.domain.model.SendResult
@@ -21,6 +22,8 @@ interface Clock {
 
 interface ConfigurationRepository {
     fun findByRequester(requester: CanonicalPhone): Configuration?
+
+    fun findById(id: ConfigurationId): Configuration?
 
     fun findAll(): List<Configuration>
 }

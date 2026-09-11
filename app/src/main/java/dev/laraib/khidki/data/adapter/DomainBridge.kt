@@ -13,6 +13,7 @@ import dev.laraib.khidki.domain.model.AuditEventType
 import dev.laraib.khidki.domain.model.AuthorizationSession
 import dev.laraib.khidki.domain.model.CanonicalPhone
 import dev.laraib.khidki.domain.model.Configuration
+import dev.laraib.khidki.domain.model.ConfigurationId
 import dev.laraib.khidki.domain.model.HistoryEvent
 import dev.laraib.khidki.domain.model.HistoryEventType
 import dev.laraib.khidki.domain.model.TerminalOutcome
@@ -27,6 +28,9 @@ class BlockingConfigurationRepository(
 ) : ConfigurationRepository {
     override fun findByRequester(requester: CanonicalPhone): Configuration? =
         Blocking.io { delegate.getEnabledForRequester(requester).firstOrNull() }
+
+    override fun findById(id: ConfigurationId): Configuration? =
+        Blocking.io { delegate.getById(id) }
 
     override fun findAll(): List<Configuration> = Blocking.io { delegate.getAll() }
 }
@@ -112,6 +116,9 @@ private fun AuditEvent.toHistoryEvent(): HistoryEvent {
         AuditEventType.ACK_FAILED -> HistoryEventType.BUDGET_REJECTED
         AuditEventType.FORWARD_SENT -> HistoryEventType.SESSION_SUBMITTED
         AuditEventType.FORWARD_FAILED -> HistoryEventType.SESSION_TERMINAL
+        AuditEventType.TIMED_ARMED -> HistoryEventType.TIMED_ARMED
+        AuditEventType.TIMED_CANCELLED -> HistoryEventType.TIMED_CANCELLED
+        AuditEventType.TIMED_EXPIRED -> HistoryEventType.TIMED_EXPIRED
     }
     val detail = buildMap {
         detail?.let { put("detail", it) }
