@@ -19,40 +19,38 @@
 | Key | Current Value |
 |---|---|
 | **Last Active Model** | Composer (Coordinator) |
-| **Timestamp** | 2026-09-11 10:20 IST |
-| **Git Branch** | `feat/production-repo-harness` (commit `6a72a32`) |
-| **Working Tree Status** | Clean — Phase 1 code complete, PR pending |
+| **Timestamp** | 2026-09-11 10:28 IST |
+| **Git Branch** | `feat/sideload-onboarding-permission-flow` (commit `3bfb4ac`) |
+| **Working Tree Status** | Clean — Phase 2 code complete, PR #2 pending |
 | **Active Plan** | `docs/plans/2026-09-11-production-hardening-and-pr-phases.md` |
-| **Active Phase / PR** | **Phase 1 complete** — awaiting PR #1 merge |
-| **Local Unit Tests** | 51 / 51 passing (`./gradlew :app:testDebugUnitTest`) |
-| **CI / Release Status** | PR CI pending (old `preview-apk` workflow replaced) |
+| **Active Phase / PR** | **Phase 2 complete** — awaiting PR #2 merge |
+| **Local Unit Tests** | 54 / 54 passing (`./gradlew :app:testDebugUnitTest`) |
+| **CI / Release Status** | PR #1 merged; PR #2 CI pending |
 | **Blockers / Doubts** | None. |
 
 ---
 
 ## 2. Latest Handover Note (Comments & Gotchas for the Incoming Model)
 
-### From: Composer (2026-09-11 10:20 IST)
+### From: Composer (2026-09-11 10:28 IST)
 ### To: Incoming Model (Next turn or Worker)
 
 #### Context & Where We Are:
-- **Phase 1 is DONE** on branch `feat/production-repo-harness` with 3 atomic commits:
-  1. `76c7a6c` — deterministic debug keystore + signing config
-  2. `416175a` — `ci.yml`, `release.yml`, `scripts/audit_manifest.sh` (deleted `apk.yml`)
-  3. `6a72a32` — PR/issue templates, Dependabot, CONTRIBUTING, coordination docs
-- PR #1 needs to be pushed/created (or merged if already done when you read this).
-- **Next phase after merge:** Phase 2 on `feat/sideload-onboarding-permission-flow`.
+- **Phase 1 MERGED** (PR #1). Production CI, deterministic keystore, repo standards live on `main`.
+- **Phase 2 DONE** on `feat/sideload-onboarding-permission-flow`:
+  1. `ac9f530` — `PermissionGate` helper + tests
+  2. `3bfb4ac` — sideload pre-flight card, removed onCreate permission auto-prompt
+- PR #2 pending merge. **Next: Phase 3** (`feat/ui-diagnostics-and-usability`) after PR #2 merges.
 
 #### Tricky Things / Gotchas You Must Know:
-1. **`.gitignore` keystore exception:** `*.keystore` is ignored globally, but `!app/debug-keystore/debug.keystore` is explicitly allowed. Don't remove the negation.
-2. **Manifest audit paths:** `scripts/audit_manifest.sh` checks source manifest AND merged debug manifest. Run after `assembleDebug`.
-3. **Two workflows now:** `ci.yml` runs on PRs; `release.yml` runs on push to `main` and publishes `preview` APK.
-4. **Android 15/16 Restricted Settings (Phase 2):** Still the top UX blocker for physical testing.
+1. **Permission flow order matters:** User must tap "Open App Info" FIRST, enable restricted settings, THEN "Grant SMS Permissions". Don't re-add auto-prompt on launch.
+2. **`PermissionGate.createAppDetailsIntent`** uses `FLAG_ACTIVITY_NEW_TASK` for safety from non-activity contexts.
+3. **Phase 3 scope:** Event log on Status tab, copy command button, real session cancel, RE2 validation, countdown timer.
 
 #### Your EXACT Next Steps:
-1. Check if PR #1 is merged: `gh pr list --repo laraib-sidd/khidki --state all`
-2. If merged → `git checkout main && git pull` → create `feat/sideload-onboarding-permission-flow`
-3. If not merged → wait for CI green, then merge PR #1 before starting Phase 2.
+1. Merge PR #2 after CI green: `gh pr merge 2 --repo laraib-sidd/khidki --merge`
+2. `git checkout main && git pull && git checkout -b feat/ui-diagnostics-and-usability`
+3. Start Phase 3 Task 3.1: `DiagnosticEventBus` + wire into `SmsInboundProcessor`.
 
 ---
 
@@ -61,7 +59,8 @@
 | Timestamp (IST) | Outgoing Model | Incoming Model | Branch / Phase | Last Action Completed | Next Action for Incoming | Key Comments / Warnings |
 |---|---|---|---|---|---|---|
 | 2026-09-11 10:15 | Gemini | Pending Switch | `main` / Phase 0 | Wrote execution plan and `docs/MODEL_MEMORY.md`. | Create `feat/production-repo-harness` and execute Task 1.1. | All 51 tests green. |
-| 2026-09-11 10:20 | Composer | Pending Switch | `feat/production-repo-harness` / Phase 1 | Completed Phase 1 (3 commits). Tests + manifest audit pass. | Push branch, open PR #1, merge after CI green, start Phase 2. | Keystore committed at `app/debug-keystore/debug.keystore`. |
+| 2026-09-11 10:20 | Composer | — | `feat/production-repo-harness` / Phase 1 | Completed Phase 1, opened PR #1, CI green, merged. | Start Phase 2. | Keystore at `app/debug-keystore/debug.keystore`. |
+| 2026-09-11 10:28 | Composer | Pending Switch | `feat/sideload-onboarding-permission-flow` / Phase 2 | Phase 2 done (2 commits), 54 tests pass. | Open/merge PR #2, start Phase 3. | No auto SMS prompt on launch anymore. |
 
 ---
 

@@ -1,7 +1,6 @@
 package dev.laraib.khidki.ui
 
 import android.Manifest
-import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -45,9 +44,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import dev.laraib.khidki.domain.model.Configuration
 import dev.laraib.khidki.domain.model.HistoryEvent
+import dev.laraib.khidki.platform.permission.PermissionGate
 
 class MainActivity : ComponentActivity() {
     private val viewModel: KhidkiViewModel by viewModels()
@@ -59,28 +58,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (!hasSmsPermission()) {
-            permissionLauncher.launch(
-                arrayOf(
-                    Manifest.permission.RECEIVE_SMS,
-                    Manifest.permission.SEND_SMS,
-                ),
-            )
-        }
         viewModel.refresh(hasSmsPermission())
         setContent {
             KhidkiTheme {
                 KhidkiAppScreen(
                     viewModel = viewModel,
                     hasSmsPermission = hasSmsPermission(),
-                    onRequestPermissions = {
-                        permissionLauncher.launch(
-                            arrayOf(
-                                Manifest.permission.RECEIVE_SMS,
-                                Manifest.permission.SEND_SMS,
-                            ),
-                        )
-                    },
+                    onOpenAppInfo = { openAppInfo() },
+                    onRequestPermissions = { requestSmsPermissions() },
                 )
             }
         }
@@ -91,10 +76,19 @@ class MainActivity : ComponentActivity() {
         viewModel.refresh(hasSmsPermission())
     }
 
-    private fun hasSmsPermission(): Boolean {
-        val receive = ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS)
-        val send = ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS)
-        return receive == PackageManager.PERMISSION_GRANTED && send == PackageManager.PERMISSION_GRANTED
+    private fun hasSmsPermission(): Boolean = PermissionGate.hasSmsPermissions(this)
+
+    private fun openAppInfo() {
+        startActivity(PermissionGate.createAppDetailsIntent(packageName))
+    }
+
+    private fun requestSmsPermissions() {
+        permissionLauncher.launch(
+            arrayOf(
+                Manifest.permission.RECEIVE_SMS,
+                Manifest.permission.SEND_SMS,
+            ),
+        )
     }
 }
 
@@ -112,6 +106,7 @@ private fun KhidkiTheme(content: @Composable () -> Unit) {
 private fun KhidkiAppScreen(
     viewModel: KhidkiViewModel,
     hasSmsPermission: Boolean,
+    onOpenAppInfo: () -> Unit,
     onRequestPermissions: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -151,8 +146,11 @@ private fun KhidkiAppScreen(
     ) { padding ->
         Column(Modifier.padding(padding).padding(16.dp)) {
             if (!hasSmsPermission) {
-                Text("SMS permission required. On sideloaded installs, enable Allow restricted settings first.")
-                Button(onClick = onRequestPermissions) { Text("Grant SMS") }
+                PermissionPreflightCard(
+                    steps = PermissionGate.sideloadSetupSteps(),
+                    onOpenAppInfo = onOpenAppInfo,
+                    onRequestPermissions = onRequestPermissions,
+                )
                 Spacer(Modifier.height(8.dp))
             }
             when (tab) {
@@ -258,6 +256,38 @@ private fun SettingsTab(state: KhidkiUiState, viewModel: KhidkiViewModel, hasSms
         Text("Never use live bank OTPs in tests.")
         Text("Password: 8 digits, reusable until expiry.")
         Text("Configs: ${state.configurations.size} / 20")
+    }
+}
+
+@Composable
+private fun PermissionPreflightCard(
+    steps: List<String>,
+    onOpenAppInfo: () -> Unit,
+    onRequestPermissions: () -> Unit,
+) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(
+            Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                "Sideload setup required",
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                "Android 15+ blocks SMS permissions until restricted settings are allowed. " +
+                    "Complete these steps before granting SMS.",
+            )
+            steps.forEachIndexed { index, step ->
+                Text("${index + 1}. $step")
+            }
+            Button(onClick = onOpenAppInfo, modifier = Modifier.fillMaxWidth()) {
+                Text("Open App Info")
+            }
+            Button(onClick = onRequestPermissions, modifier = Modifier.fillMaxWidth()) {
+                Text("Grant SMS Permissions")
+            }
+        }
     }
 }
 
