@@ -23,9 +23,9 @@
 | Attribute | Current Value |
 |---|---|
 | **Base Branch** | `main` (commit `89ec2d7`) |
-| **Working Branch** | `main` (clean) |
-| **Active PR** | None (Plan stage) |
-| **Current Phase** | **Phase 0: Planning & Coordination Architecture** |
+| **Working Branch** | `feat/production-repo-harness` (commit `6a72a32`) |
+| **Active PR** | PR #1 pending (production repo harness) |
+| **Current Phase** | **Phase 1: Production Harness & Repo Standards** (complete, awaiting merge) |
 | **Unit Test Suite** | 51 tests passing (`./gradlew :app:testDebugUnitTest`) |
 | **GitHub CI Status** | Passing (run `34514006117`) |
 | **Latest Published APK** | `preview` release on GitHub (`app-debug.apk`, ~55.5MB) |
@@ -61,9 +61,10 @@
   - [x] Audit codebase, git history, and CI status
   - [x] Establish `docs/COORDINATION.md`
   - [x] Write comprehensive multi-phase PR execution plan in `docs/plans/2026-09-11-production-hardening-and-pr-phases.md`
-- [ ] **Phase 1: Production Harness & Repo Standards (PR #1)**
+- [x] **Phase 1: Production Harness & Repo Standards (PR #1)**
   - Branch: `feat/production-repo-harness`
-  - Scope: Multi-job CI (lint, test, manifest audit, assemble), reproducible preview signing keystore, PR & Issue templates, CONTRIBUTING.md, Dependabot.
+  - Scope: Multi-job CI (test, manifest audit, assemble), reproducible preview signing keystore, PR & Issue templates, CONTRIBUTING.md, Dependabot.
+  - Commits: `76c7a6c`, `416175a`, `6a72a32`
 - [ ] **Phase 2: Sideload Onboarding & Permission Flow (PR #2)**
   - Branch: `feat/sideload-onboarding-permission-flow`
   - Scope: Android 15/16 Restricted Settings pre-prompt, deep link to App Info, Realme auto-start guide, remove premature onCreate permission launch.
