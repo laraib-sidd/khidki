@@ -16,7 +16,7 @@ Personal Android app: send `req <8-digit-password>` from a trusted number to ope
 ## Use
 
 1. **Configs** → add label, requester number (`+91…`), sender regex, content regex (e.g. `OTP`).
-2. Tap **Save & generate command** — copy `req XXXXXXXX` now (shown once).
+2. Tap **Save & generate command** — tap **Copy Command** immediately (shown once).
 3. From the requester phone, SMS the command **before** the OTP you want forwarded.
 4. **Status** shows active window; matching SMS forwards automatically.
 
@@ -28,6 +28,8 @@ Personal Android app: send `req <8-digit-password>` from a trusted number to ope
 
 Docs: `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/PRIVACY.md`, `docs/COMPATIBILITY.md`, `docs/PHYSICAL_TEST.md`.
 
-Worker entry: `WORKER.md`. Locked decisions: `docs/DECISIONS.md`.
+Coordination: `docs/COORDINATION.md`, `docs/MODEL_MEMORY.md`. Locked decisions: `docs/DECISIONS.md`.
+
+Contributing: `CONTRIBUTING.md`. Changelog: `CHANGELOG.md`.
 
 **Never use live bank OTPs in tests.**

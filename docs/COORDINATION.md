@@ -22,13 +22,13 @@
 
 | Attribute | Current Value |
 |---|---|
-| **Base Branch** | `main` (commit `89ec2d7`) |
-| **Working Branch** | `feat/production-repo-harness` (commit `6a72a32`) |
-| **Active PR** | PR #1 pending (production repo harness) |
-| **Current Phase** | **Phase 1: Production Harness & Repo Standards** (complete, awaiting merge) |
-| **Unit Test Suite** | 51 tests passing (`./gradlew :app:testDebugUnitTest`) |
-| **GitHub CI Status** | Passing (run `34514006117`) |
-| **Latest Published APK** | `preview` release on GitHub (`app-debug.apk`, ~55.5MB) |
+| **Base Branch** | `main` |
+| **Working Branch** | `feat/production-hardening-and-release` (Phase 5, PR pending) |
+| **Active PR** | PR #10 pending (production hardening & release) |
+| **Current Phase** | **All 5 phases complete** — awaiting Phase 5 merge + `v1.0.0-preview` tag |
+| **Unit Test Suite** | 62 tests passing (`./gradlew :app:testDebugUnitTest`) |
+| **GitHub CI Status** | Green on PRs #1, #7, #8, #9 |
+| **Latest Published APK** | `preview` release (updates on merge to `main`) |
 
 ---
 
@@ -65,18 +65,12 @@
   - Branch: `feat/production-repo-harness`
   - Scope: Multi-job CI (test, manifest audit, assemble), reproducible preview signing keystore, PR & Issue templates, CONTRIBUTING.md, Dependabot.
   - Commits: `76c7a6c`, `416175a`, `6a72a32`
-- [ ] **Phase 2: Sideload Onboarding & Permission Flow (PR #2)**
-  - Branch: `feat/sideload-onboarding-permission-flow`
-  - Scope: Android 15/16 Restricted Settings pre-prompt, deep link to App Info, Realme auto-start guide, remove premature onCreate permission launch.
-- [ ] **Phase 3: Critical UI/UX Diagnostics & Usability (PR #3)**
-  - Branch: `feat/ui-diagnostics-and-usability`
-  - Scope: Live event logger stream on Status tab, 1-tap copy button on generated command, real session termination logic & UI button, RE2 validation on config save, countdown timer for active window.
-- [ ] **Phase 4: Production Data Layer Wiring (PR #4)**
-  - Branch: `feat/room-persistence-wiring`
-  - Scope: Connect RoomLockoutStore, RoomBudgetLedger, and RoomDuplicateFingerprintStore to runtime via adapters; persistent security invariants across device reboots.
-- [ ] **Phase 5: Production Hardening, Physical Runbook & Release Tag (PR #5)**
+- [x] **Phase 2: Sideload Onboarding & Permission Flow (PR #7)**
+- [x] **Phase 3: Critical UI/UX Diagnostics & Usability (PR #8)**
+- [x] **Phase 4: Production Data Layer Wiring (PR #9)**
+- [x] **Phase 5: Production Hardening, Physical Runbook & Release Tag (PR #10)**
   - Branch: `feat/production-hardening-and-release`
-  - Scope: Status-bar notification on armed/forwarded, updated physical test runbook for GT 6T, CHANGELOG, tag `v1.0.0-preview`.
+  - Scope: StatusNotifier, PHYSICAL_TEST.md, CHANGELOG.md, `v1.0.0-preview` tag after merge.
 
 ---
 
