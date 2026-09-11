@@ -15,7 +15,7 @@ android {
         minSdk = 31
         targetSdk = 36
         versionCode = System.getenv("KHIDKI_VERSION_CODE")?.toIntOrNull() ?: 1
-        versionName = "1.1.0"
+        versionName = "1.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -30,6 +30,7 @@ android {
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -92,7 +93,7 @@ dependencies {
     implementation(libs.libphonenumber)
     implementation(libs.security.crypto)
     implementation(libs.biometric)
-    implementation(libs.appcompat)
+    implementation(libs.fragment.ktx)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)

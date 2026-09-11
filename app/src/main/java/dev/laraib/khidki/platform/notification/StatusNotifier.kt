@@ -9,6 +9,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import dev.laraib.khidki.R
 import dev.laraib.khidki.domain.model.AuditEvent
 import dev.laraib.khidki.domain.model.AuditEventType
 
@@ -47,7 +48,7 @@ class StatusNotifier(
         }
         ensureChannel()
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)

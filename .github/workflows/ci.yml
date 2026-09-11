@@ -118,7 +118,7 @@ jobs:
       - name: Build release APK
         env:
           KHIDKI_VERSION_CODE: ${{ steps.version.outputs.code }}
-        run: ./gradlew :app:assembleDebug --stacktrace
+        run: ./gradlew :app:assembleRelease --stacktrace
 
       - run: bash scripts/audit_manifest.sh
 

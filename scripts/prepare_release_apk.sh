@@ -14,16 +14,16 @@ RUN_ID="${GITHUB_RUN_ID:-local}"
 RUN_NUMBER="${GITHUB_RUN_NUMBER:-0}"
 RELEASE_TAG="${KHIDKI_RELEASE_TAG:-${KHIDKI_RELEASE_CHANNEL:-preview}}"
 
-SRC_APK="$(find app/build/outputs/apk/debug -name '*.apk' -type f | sort | head -1)"
+SRC_APK="$(find app/build/outputs/apk/release -name '*.apk' -type f | sort | head -1)"
 if [[ -z "$SRC_APK" ]]; then
-  echo "ERROR: No debug APK found under app/build/outputs/apk/debug" >&2
+  echo "ERROR: No release APK found under app/build/outputs/apk/release" >&2
   exit 1
 fi
 
 OUT_DIR="$ROOT/release-artifacts"
 mkdir -p "$OUT_DIR"
 
-APK_BASENAME="khidki-${VERSION_NAME}-debug-b${VERSION_CODE}-${SHORT_SHA}.apk"
+APK_BASENAME="khidki-${VERSION_NAME}-b${VERSION_CODE}-${SHORT_SHA}.apk"
 OUT_APK="$OUT_DIR/$APK_BASENAME"
 cp "$SRC_APK" "$OUT_APK"
 

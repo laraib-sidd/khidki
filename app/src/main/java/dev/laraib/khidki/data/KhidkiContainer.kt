@@ -48,7 +48,6 @@ class KhidkiContainer private constructor(
                 DATABASE_NAME,
             )
                 .addMigrations(KhidkiMigrations.MIGRATION_1_2)
-                .fallbackToDestructiveMigration()
                 .build()
 
             val credentialVerifier = KeystoreCredentialVerifier()

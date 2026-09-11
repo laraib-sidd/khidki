@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.laraib.khidki.BuildConfig
 import dev.laraib.khidki.domain.filter.Re2RuleMatcher
 import dev.laraib.khidki.domain.model.FilterRules
 import dev.laraib.khidki.domain.model.RuleMatchOutcome
@@ -198,9 +199,9 @@ private fun AboutCard() {
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text("About", style = MaterialTheme.typography.titleMedium)
-            Text("Khidki v1.0.0-preview", style = MaterialTheme.typography.bodyMedium)
-            Text("Personal sideload APK — not on Play Store.", style = MaterialTheme.typography.bodySmall)
-            Text("Install from GitHub Releases preview channel.", style = MaterialTheme.typography.bodySmall)
+            Text("Khidki v${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodyMedium)
+            Text("Build ${BuildConfig.VERSION_CODE} · ${BuildConfig.APPLICATION_ID}", style = MaterialTheme.typography.bodySmall)
+            Text("Personal sideload APK — install from GitHub Releases.", style = MaterialTheme.typography.bodySmall)
             Text("Never use live bank OTPs in tests.", style = MaterialTheme.typography.bodySmall)
         }
     }

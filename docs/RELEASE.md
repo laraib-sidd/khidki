@@ -8,7 +8,7 @@ Every push to `main` runs CI. When tests and manifest audit pass, the **same wor
 |---|---|
 | **Git tag** | `v1.1.0-b17` |
 | **Release name** | `Khidki v1.1.0-b17` |
-| **APK** | `khidki-1.1.0-debug-b17-abc1234.apk` |
+| **APK** | `khidki-1.2.0-b17-abc1234.apk` |
 
 - `b17` = CI workflow run number (also Android `versionCode`)
 - Each release is **immutable** — never overwritten
@@ -38,9 +38,9 @@ flowchart LR
 ## Install (Realme GT 6T)
 
 1. Open [GitHub Releases](https://github.com/laraib-sidd/khidki/releases) → **Latest**
-2. Download `khidki-*-debug-b*.apk`
+2. Download `khidki-*-b*.apk` (release build, package `dev.laraib.khidki`)
 3. Optional: `sha256sum -c <apk>.sha256`
-4. Sideload over existing Khidki debug build (same keystore; needs higher `versionCode`)
+4. If you previously installed an older **debug** APK (`dev.laraib.khidki.debug`), uninstall it first — package IDs differ
 
 Record the `v1.1.0-b<N>` tag in physical test notes.
 
