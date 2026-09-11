@@ -14,6 +14,7 @@ import dev.laraib.khidki.domain.filter.Re2RuleMatcher
 import dev.laraib.khidki.domain.model.AppState
 import dev.laraib.khidki.domain.session.ForwardingEngine
 import dev.laraib.khidki.platform.clock.AndroidSystemClock
+import dev.laraib.khidki.platform.notification.StatusNotifier
 import dev.laraib.khidki.platform.sms.AndroidSmsTransport
 import dev.laraib.khidki.platform.sms.SmsInboundProcessor
 
@@ -56,7 +57,11 @@ class KhidkiRuntime private constructor(
                 database = container.database,
                 nowMillis = { clock.nowMillis() },
             )
-            val auditStore = DiagnosticAuditStore(BlockingAuditStore(container.auditStore))
+            val statusNotifier = StatusNotifier(context)
+            val auditStore = DiagnosticAuditStore(
+                delegate = BlockingAuditStore(container.auditStore),
+                statusNotifier = statusNotifier,
+            )
             val credentialVerifier = RoomDomainCredentialVerifier(
                 database = container.database,
                 keystore = container.credentialVerifier,
