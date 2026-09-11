@@ -9,7 +9,7 @@ import dev.laraib.khidki.domain.ports.RequestAuthenticator
 class DefaultRequestAuthenticator(
     private val configurationRepository: ConfigurationRepository,
     private val credentialVerifier: CredentialVerifier,
-    private val lockoutTracker: AuthLockoutTracker,
+    private val lockoutTracker: LockoutTracker,
 ) : RequestAuthenticator {
     override fun authenticate(requester: CanonicalPhone, password: String): AuthResult {
         if (!credentialVerifier.isKnownRequester(requester)) {

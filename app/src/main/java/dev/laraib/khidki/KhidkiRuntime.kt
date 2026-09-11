@@ -2,14 +2,14 @@ package dev.laraib.khidki
 
 import android.content.Context
 import dev.laraib.khidki.data.KhidkiContainer
+import dev.laraib.khidki.data.adapter.BlockingDomainBudgetLedger
 import dev.laraib.khidki.data.adapter.DiagnosticAuditStore
 import dev.laraib.khidki.data.adapter.BlockingAuditStore
 import dev.laraib.khidki.data.adapter.BlockingConfigurationRepository
 import dev.laraib.khidki.data.adapter.BlockingSessionRepository
+import dev.laraib.khidki.data.adapter.PersistentLockoutTracker
 import dev.laraib.khidki.data.adapter.RoomDomainCredentialVerifier
-import dev.laraib.khidki.domain.auth.AuthLockoutTracker
 import dev.laraib.khidki.domain.auth.DefaultRequestAuthenticator
-import dev.laraib.khidki.domain.budget.SmsBudgetLedger
 import dev.laraib.khidki.domain.filter.Re2RuleMatcher
 import dev.laraib.khidki.domain.model.AppState
 import dev.laraib.khidki.domain.session.ForwardingEngine
@@ -62,13 +62,13 @@ class KhidkiRuntime private constructor(
                 keystore = container.credentialVerifier,
                 nowMillis = { clock.nowMillis() },
             )
-            val lockoutTracker = AuthLockoutTracker(clock)
+            val lockoutTracker = PersistentLockoutTracker(container.lockoutStore, clock)
             val requestAuthenticator = DefaultRequestAuthenticator(
                 configurationRepository = configurationRepository,
                 credentialVerifier = credentialVerifier,
                 lockoutTracker = lockoutTracker,
             )
-            val budgetLedger = SmsBudgetLedger(clock)
+            val budgetLedger = BlockingDomainBudgetLedger(container.budgetLedger, clock)
             val smsTransport = AndroidSmsTransport(context)
             val engine = ForwardingEngine(
                 clock = clock,
@@ -84,7 +84,11 @@ class KhidkiRuntime private constructor(
                 container = container,
                 clock = clock,
                 engine = engine,
-                smsProcessor = SmsInboundProcessor(engine),
+                smsProcessor = SmsInboundProcessor(
+                    engine = engine,
+                    duplicateFingerprintStore = container.duplicateFingerprintStore,
+                    nowMillis = { clock.nowMillis() },
+                ),
             )
             return runtime
         }
