@@ -48,11 +48,16 @@ Use conventional prefixes:
 
 ## Model / Worker Coordination
 
-- Live handover: `docs/MODEL_MEMORY.md`
-- Phase tracker: `docs/COORDINATION.md`
+- Live handover: `docs/MODEL_MEMORY.md` (append-only for history sections)
+- Phase tracker + **blockers**: `docs/COORDINATION.md`
+- Physical test status: `docs/TEST_RESULTS.md`, `docs/PHYSICAL_TEST.md`
 - Execution plans: `docs/plans/`
 
 Update `docs/MODEL_MEMORY.md` before switching models or ending a work session.
+
+## Current blockers (2026-09-11)
+
+See `docs/COORDINATION.md` Section 2. Summary: SMS ingress works; end-to-end forward blocked because requester uses RCS for `req`. Phase 7 manual arm proposed.
 
 ## Releases
 

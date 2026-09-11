@@ -227,5 +227,48 @@ bash scripts/audit_manifest.sh   # after assembleDebug if needed
 ### Install target for owner:
 - GitHub Releases → **Khidki preview (rolling)** → download `khidki-1.1.0-debug-b*.apk`
 
+---
+
+## 11. Physical Test Findings, Blockers & Doc Refresh (2026-09-11 15:35 IST)
+
+### Physical test results (Realme GT 6T, build 1.1.0-preview)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Sideload + restricted SMS permission | **PASS** | Owner completed setup |
+| Phase 6 UI usable | **PASS** | Config "Chotu Test" created via FAB bottom sheet |
+| SMS receive (Blinkit OTP) | **PASS** | `[IN]` 153 chars at 15:22 from transactional sender |
+| Master switch gating | **PASS** | Events only when master ON |
+| RCS `req` from brother (Chotu) | **FAIL (expected)** | Google Messages shows "RCS chat" — Khidki never sees it |
+| OTP forward end-to-end | **NOT TESTED** | `CANDIDATE: NoActiveSession` — window never armed |
+| History audit trail | **0 events** | Expected: `NoActiveSession` only hits diagnostic stream |
+
+### Owner misconceptions clarified
+
+1. **Master ON ≠ auto-forward.** Master is the global power switch. OTPs still require an armed window via `req` (or future manual arm).
+2. **RCS ≠ SMS.** Brother's personal messages are RCS. Blinkit OTPs are SMS and Khidki receives them.
+3. **History vs diagnostic stream.** Failed candidates (`NoActiveSession`) appear in Status diagnostics only, not History.
+
+### Active blockers
+
+| ID | Blocker | Proposed fix |
+|---|---|---|
+| **B1** | Brother can only send RCS, not SMS `req` | Phase 7: Manual "Open window" button on Status tab |
+| **B2** | End-to-end P3 forward unproven | Arm window (SMS `req` or Phase 7) → Blinkit login → verify forward |
+| **B3** | RCS support requested | Locked out by `docs/DECISIONS.md` (no Notification Listener). Manual arm is the pragmatic path. |
+
+### Docs updated (2026-09-11 15:35 IST)
+
+- `docs/COORDINATION.md` — current phase, blockers, session log
+- `docs/PHYSICAL_TEST.md` — Master vs `req`, SMS vs RCS, updated trial matrix
+- `docs/COMPATIBILITY.md` — message transport matrix, partial physical results
+- `docs/TEST_RESULTS.md` — automated + physical partial results
+- `README.md` — install target, Master/`req` explanation, RCS warning
+- `CHANGELOG.md` — unreleased physical test notes
+
+### Next action (owner decision)
+
+- Approve **Phase 7 manual arm** spec → worker implements → re-test P3 with Blinkit OTP.
+
 
 

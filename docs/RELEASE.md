@@ -37,6 +37,8 @@ flowchart LR
 3. Optional: verify `sha256sum -c <apk>.sha256`.
 4. Sideload over existing Khidki debug build (same keystore; requires higher `versionCode`).
 
+> **Physical test note (2026-09-11):** Build `1.1.0` confirmed SMS receive on device. End-to-end OTP forward pending armed window. See `docs/PHYSICAL_TEST.md` and `docs/COORDINATION.md` blockers.
+
 ## Manual release trigger
 
 ```bash

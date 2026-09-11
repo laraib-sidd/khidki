@@ -2,6 +2,36 @@
 
 All notable changes to Khidki are documented here.
 
+## [Unreleased]
+
+### Physical testing (2026-09-11, Realme GT 6T)
+
+- **Pass:** Sideload permissions, Phase 6 UI, SMS receive (Blinkit OTP), diagnostic stream
+- **Blocked:** End-to-end OTP forward — requester uses RCS only; `req` never received
+- **Clarified:** Master ON ≠ auto-forward; `NoActiveSession` when OTP arrives without armed window
+- **Proposed:** Phase 7 manual "Open window" button for RCS-only requester scenario
+
+### Added (pending release tag)
+
+- Phase 6 Material 3 UI/UX revamp (Status hero card, Config bottom sheet, History badges, Settings regex tester)
+- Production-standard release pipeline: CI-gated publish, traceable APK names, SHA256 checksums, release metadata
+
+### Changed
+
+- Version `1.1.0` with CI-driven `versionCode` for reliable sideload updates
+- Rolling `preview` release is the install target (`docs/RELEASE.md`)
+
+## [1.1.0-preview] — 2026-09-11
+
+### Added
+- Material 3 UI overhaul ([PR #11](https://github.com/laraib-sidd/khidki/pull/11))
+- CI-gated release workflow with `khidki-*-debug-b*-*.apk` artifacts
+- `docs/RELEASE.md` deployment runbook
+
+### Changed
+- App version `1.0.0` → `1.1.0`
+- Dependabot removed (closed bot PRs #2–#6)
+
 ## [1.0.0-preview] — 2026-09-11
 
 ### Added
@@ -19,18 +49,3 @@ All notable changes to Khidki are documented here.
 ### Security
 - Manifest audit fails CI if `INTERNET` permission is merged
 - Lockout and daily SMS part budget survive device reboot
-
-## [Unreleased]
-
-### Added
-- Phase 6 Material 3 UI/UX revamp (Status hero card, Config bottom sheet, History badges, Settings regex tester)
-- Production-standard release pipeline: CI-gated publish, traceable APK names, SHA256 checksums, release metadata
-
-### Changed
-- Version bumped to `1.1.0` with CI-driven `versionCode` for reliable sideload updates
-- Rolling `preview` release is now the default Latest install target
-
-## [1.1.0-preview] — 2026-09-11
-
-- Phase 6 UI/UX revamp merged to `main`
-- Production-standard CI-gated release pipeline with traceable APK artifacts
