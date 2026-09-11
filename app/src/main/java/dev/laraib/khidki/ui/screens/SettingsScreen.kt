@@ -32,10 +32,10 @@ import dev.laraib.khidki.ui.theme.StatusRedBg
 @Composable
 fun SettingsScreen(
     state: KhidkiUiState,
-    hasSmsPermission: Boolean,
     onOpenAppInfo: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val hasSmsPermission = state.hasSmsPermission
     Column(
         modifier = modifier
             .fillMaxSize()

@@ -6,12 +6,14 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 
 object DeviceCredentialGate {
-    fun canAuthenticate(activity: FragmentActivity): Boolean {
-        val authenticators =
-            BiometricManager.Authenticators.BIOMETRIC_STRONG or
-                BiometricManager.Authenticators.DEVICE_CREDENTIAL
-        return BiometricManager.from(activity).canAuthenticate(authenticators) ==
-            BiometricManager.BIOMETRIC_SUCCESS
+    private const val AUTHENTICATORS =
+        BiometricManager.Authenticators.BIOMETRIC_WEAK or
+            BiometricManager.Authenticators.DEVICE_CREDENTIAL
+
+    fun hasDeviceCredential(activity: FragmentActivity): Boolean {
+        return BiometricManager.from(activity).canAuthenticate(
+            BiometricManager.Authenticators.DEVICE_CREDENTIAL,
+        ) == BiometricManager.BIOMETRIC_SUCCESS
     }
 
     fun authenticate(
@@ -40,10 +42,7 @@ object DeviceCredentialGate {
             BiometricPrompt.PromptInfo.Builder()
                 .setTitle(title)
                 .setSubtitle(subtitle)
-                .setAllowedAuthenticators(
-                    BiometricManager.Authenticators.BIOMETRIC_STRONG or
-                        BiometricManager.Authenticators.DEVICE_CREDENTIAL,
-                )
+                .setAllowedAuthenticators(AUTHENTICATORS)
                 .build()
         prompt.authenticate(promptInfo)
     }

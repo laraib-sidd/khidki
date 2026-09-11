@@ -92,6 +92,7 @@ dependencies {
     implementation(libs.libphonenumber)
     implementation(libs.security.crypto)
     implementation(libs.biometric)
+    implementation(libs.appcompat)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
