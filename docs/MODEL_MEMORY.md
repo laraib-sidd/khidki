@@ -168,5 +168,33 @@ bash scripts/audit_manifest.sh   # after assembleDebug if needed
   - Append completion log to `docs/MODEL_MEMORY.md` (append-only, no edits).
   - Open PR via `gh pr create` against `main`.
 
+---
+
+## 8. Phase 6 UI/UX Revamp — Worker Completion Log (2026-09-11 13:05 IST)
+
+### Implemented by: Composer (Worker)
+### Branch: `feat/revamp-workable-ui-ux`
+
+### Deliverables shipped:
+1. **Design system**: `ui/theme/Theme.kt` — Material 3 teal palette, status colors, rounded shapes.
+2. **Shared components** (`ui/components/`):
+   - `UiUtils.kt` — phone masking, relative timestamps, diagnostic chip parsing, history labels.
+   - `PermissionPreflightCard.kt` — sideload restricted permission guidance card.
+   - `CommandRevealDialog.kt` — AlertDialog with monospace command + copy button.
+   - `ConfirmDeleteDialog.kt` — delete rule confirmation.
+3. **Modular screens** (`ui/screens/`):
+   - `StatusScreen.kt` — hero status card with READY/PAUSED/BLOCKED badges, active window countdown + LinearProgressIndicator, cancel button, scrollable diagnostic stream with color-coded chips.
+   - `ConfigsScreen.kt` — rules list with count, FAB, ModalBottomSheet form with preset chips and live RE2 validation, delete confirmation.
+   - `HistoryScreen.kt` — formatted relative timestamps, human-readable event badges, clear history confirmation.
+   - `SettingsScreen.kt` — device health card, security invariants, live regex tester scratchpad, about card.
+4. **MainActivity.kt** — thin scaffold router; command reveal via AlertDialog overlay.
+
+### Verification:
+- `./gradlew :app:testDebugUnitTest --quiet` — **62/62 PASS**
+- `bash scripts/audit_manifest.sh` — **PASS** (zero INTERNET)
+
+### Pending:
+- PR opened against `main` for owner review and physical GT 6T re-test.
+
 
 
