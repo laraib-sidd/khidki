@@ -7,11 +7,11 @@ class AuthLockoutTracker(
     private val clock: Clock,
     private val maxFailures: Int = DEFAULT_MAX_FAILURES,
     private val lockoutDurationMillis: Long = DEFAULT_LOCKOUT_MILLIS,
-) {
+) : LockoutTracker {
     private val failureTimestamps = mutableMapOf<CanonicalPhone, MutableList<Long>>()
     private val lockedUntil = mutableMapOf<CanonicalPhone, Long>()
 
-    fun isLocked(requester: CanonicalPhone): Boolean {
+    override fun isLocked(requester: CanonicalPhone): Boolean {
         val until = lockedUntil[requester] ?: return false
         val now = clock.nowMillis()
         if (now >= until) {
@@ -22,7 +22,7 @@ class AuthLockoutTracker(
         return true
     }
 
-    fun recordFailure(requester: CanonicalPhone) {
+    override fun recordFailure(requester: CanonicalPhone) {
         if (isLocked(requester)) {
             return
         }
@@ -38,7 +38,7 @@ class AuthLockoutTracker(
         }
     }
 
-    fun recordSuccess(requester: CanonicalPhone) {
+    override fun recordSuccess(requester: CanonicalPhone) {
         failureTimestamps.remove(requester)
         lockedUntil.remove(requester)
     }
