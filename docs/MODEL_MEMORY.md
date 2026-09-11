@@ -130,4 +130,43 @@ bash scripts/audit_manifest.sh   # after assembleDebug if needed
 - Planner completes the formal spec `docs/plans/2026-09-11-phase6-ui-ux-revamp.md`.
 - Planner hands off the exact prompt package to the Worker (Composer) for implementation.
 
+---
+
+## 7. Dependabot Removal & Model Handoff for Phase 6 (2026-09-11 12:48 IST)
+
+### Actions Completed:
+1. **Dependabot Purged**:
+   - Closed all 5 open automated Dependabot PRs (#2, #3, #4, #5, #6).
+   - Stale remote tracking branches pruned.
+   - Deleted `.github/dependabot.yml` so no further automated bot PRs will be created.
+   - Confirmed `gh pr list --state open` is now completely empty.
+2. **Phase 6 Plan Formulated & Committed**:
+   - Plan document: `docs/plans/2026-09-11-phase6-ui-ux-revamp.md`.
+   - Active branch: `feat/revamp-workable-ui-ux`.
+   - Core design tokens: Material 3 color palette, 16dp rounded cards, status chips (READY, PAUSED, BLOCKED).
+
+### Handoff Package for Incoming Model:
+- **Your Role**: Worker (Implementation).
+- **Task**: Execute the Phase 6 UI/UX revamp on branch `feat/revamp-workable-ui-ux` according to `docs/plans/2026-09-11-phase6-ui-ux-revamp.md`.
+- **Primary Deliverables**:
+  1. `app/src/main/java/dev/laraib/khidki/ui/theme/Theme.kt`: Complete Material 3 color scheme and typography.
+  2. `app/src/main/java/dev/laraib/khidki/ui/components/`:
+     - `UiUtils.kt`: Phone masking (`+91 •••• ••21`), relative timestamp formatting, clipboard helper.
+     - `PermissionPreflightCard.kt`: Sideload restricted permission guidance.
+     - `CommandRevealDialog.kt`: AlertDialog with monospace code and one-tap copy button.
+     - `ConfirmDeleteDialog.kt`: Modal confirmation before deleting forwarding rules.
+  3. `app/src/main/java/dev/laraib/khidki/ui/screens/`:
+     - `StatusScreen.kt`: Hero card with state badge, active window countdown + progress indicator, destructive cancel button, 50-event monospace activity feed with color-coded chips (`[IN]`, `[CMD]`, `[FWD]`, `[DROP]`).
+     - `ConfigsScreen.kt`: Forwarding rules list with count, FAB opening `ModalBottomSheet` with preset filter chips (Banks, OTP) and live RE2 regex validation checkmarks.
+     - `HistoryScreen.kt`: Formatted relative timestamps, human-readable status badges (SESSION_ARMED, AUTH_FAILURE, etc.), and clear history confirmation.
+     - `SettingsScreen.kt`: Device health card, locked security policy card, and interactive Regex Tester scratchpad.
+  4. `app/src/main/java/dev/laraib/khidki/ui/MainActivity.kt`: Clean scaffold routing to the modular screens.
+- **Verification Gates**:
+  - `./gradlew :app:testDebugUnitTest --quiet` (all 62 tests must pass).
+  - `bash scripts/audit_manifest.sh` (zero Internet permission must pass).
+- **Protocol**:
+  - Append completion log to `docs/MODEL_MEMORY.md` (append-only, no edits).
+  - Open PR via `gh pr create` against `main`.
+
+
 
