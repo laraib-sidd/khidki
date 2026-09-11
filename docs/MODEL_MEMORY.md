@@ -10,12 +10,12 @@
 |---|---|
 | **Last Active Model** | Composer (Coordinator) |
 | **Timestamp** | 2026-09-11 10:50 IST |
-| **Git Branch** | `feat/production-hardening-and-release` (Phase 5, PR pending) |
-| **Working Tree Status** | Clean — all 5 phases implemented |
+| **Git Branch** | `main` (all phases merged) |
+| **Working Tree Status** | Clean |
 | **Active Plan** | `docs/plans/2026-09-11-production-hardening-and-pr-phases.md` — **COMPLETE** |
 | **Local Unit Tests** | 62 / 62 passing |
-| **CI / Release Status** | PRs #1, #7, #8, #9 merged; PR #10 pending |
-| **Blockers / Doubts** | None. Physical GT 6T testing not yet done by owner. |
+| **CI / Release Status** | All PRs merged (#1, #7, #8, #9, #10). Tag `v1.0.0-preview` pushed. |
+| **Blockers / Doubts** | Physical GT 6T testing — owner action only. |
 
 ---
 
@@ -33,9 +33,9 @@
 | 5 Release hardening | #10 | pending merge + tag |
 
 #### Next steps for incoming model:
-1. Merge PR #10 after CI green
-2. Tag `v1.0.0-preview` on `main`: `git tag -a v1.0.0-preview -m "..." && git push origin v1.0.0-preview`
-3. Install `preview` APK on Realme GT 6T and run `docs/PHYSICAL_TEST.md`
+1. **Physical testing only** — install APK from GitHub Releases (`preview` or `v1.0.0-preview`) on Realme GT 6T
+2. Run trials in `docs/PHYSICAL_TEST.md` using Status tab Event log
+3. No further code phases planned until physical test results
 
 #### Gotchas:
 - `POST_NOTIFICATIONS` added to manifest — notifications degrade gracefully if not granted

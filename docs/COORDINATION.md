@@ -23,9 +23,9 @@
 | Attribute | Current Value |
 |---|---|
 | **Base Branch** | `main` |
-| **Working Branch** | `feat/production-hardening-and-release` (Phase 5, PR pending) |
-| **Active PR** | PR #10 pending (production hardening & release) |
-| **Current Phase** | **All 5 phases complete** — awaiting Phase 5 merge + `v1.0.0-preview` tag |
+| **Working Branch** | `main` |
+| **Active PR** | None — all phases merged |
+| **Current Phase** | **All 5 phases complete** — tagged `v1.0.0-preview` |
 | **Unit Test Suite** | 62 tests passing (`./gradlew :app:testDebugUnitTest`) |
 | **GitHub CI Status** | Green on PRs #1, #7, #8, #9 |
 | **Latest Published APK** | `preview` release (updates on merge to `main`) |
