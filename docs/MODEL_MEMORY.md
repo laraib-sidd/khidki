@@ -196,5 +196,16 @@ bash scripts/audit_manifest.sh   # after assembleDebug if needed
 ### Pending:
 - PR opened against `main` for owner review and physical GT 6T re-test.
 
+---
+
+## 9. Phase 6 Merged — Owner Physical Re-test (2026-09-11 13:07 IST)
+
+- **PR #11 merged to `main`** by owner request.
+- Feature branch `feat/revamp-workable-ui-ux` deleted after merge.
+- `main` now includes full Phase 6 UI/UX revamp.
+- **Next gate**: Owner physical re-test on Realme GT 6T.
+- **Install**: GitHub Releases `preview` APK (auto-builds on `main` push) or sideload from Actions artifact.
+- **Test focus**: Config FAB bottom sheet + keyboard, command copy dialog, Status countdown, History readability, Settings regex tester.
+
 
 
