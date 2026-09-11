@@ -30,6 +30,11 @@ enum class AppState {
     BLOCKED_CAPABILITY,
 }
 
+enum class SessionOrigin {
+    REQUEST,
+    TIMED,
+}
+
 enum class SessionState {
     ARMED,
     CLAIMED,
@@ -133,9 +138,14 @@ data class AuthorizationSession(
     val submittedAtMillis: Long? = null,
     val credentialId: UUID? = null,
     val forwarded: Boolean = false,
+    val origin: SessionOrigin = SessionOrigin.REQUEST,
+    val forwardCount: Int = 0,
 ) {
     val isActive: Boolean
-        get() = terminalOutcome == null && state != SessionState.SUBMITTED
+        get() = when (origin) {
+            SessionOrigin.TIMED -> terminalOutcome == null
+            SessionOrigin.REQUEST -> terminalOutcome == null && state != SessionState.SUBMITTED
+        }
 
     fun isExpired(nowMillis: Long): Boolean = nowMillis >= expiresAtMillis
 
@@ -253,6 +263,9 @@ enum class AuditEventType {
     SESSION_ARMED,
     SESSION_EXPIRED,
     SESSION_CANCELLED,
+    TIMED_ARMED,
+    TIMED_CANCELLED,
+    TIMED_EXPIRED,
     CANDIDATE_MATCHED,
     CANDIDATE_FORWARDED,
     CANDIDATE_REJECTED,
@@ -295,6 +308,9 @@ enum class HistoryEventType {
     SESSION_CLAIMED,
     SESSION_SUBMITTED,
     SESSION_TERMINAL,
+    TIMED_ARMED,
+    TIMED_CANCELLED,
+    TIMED_EXPIRED,
     AUTH_FAILURE,
     AUTH_LOCKOUT,
     CONFIG_CHANGED,
@@ -329,4 +345,19 @@ enum class ArmRejectReason {
     ACTIVE_SESSION_EXISTS,
     CONFIGURATION_DISABLED,
     CONFIGURATION_NOT_FOUND,
+}
+
+sealed class TimedArmResult {
+    data class Success(val session: AuthorizationSession) : TimedArmResult()
+
+    data class Rejected(val reason: TimedArmRejectReason) : TimedArmResult()
+}
+
+enum class TimedArmRejectReason {
+    CONFIGURATION_NOT_FOUND,
+    CONFIGURATION_DISABLED,
+    ACTIVE_SESSION_EXISTS,
+    DURATION_OUT_OF_RANGE,
+    APP_PAUSED,
+    APP_NOT_READY,
 }

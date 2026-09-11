@@ -18,16 +18,16 @@
 
 ---
 
-## 2. Current State Snapshot (2026-09-11 15:35 IST)
+## 2. Current State Snapshot (2026-09-11 18:55 IST)
 
 | Attribute | Current Value |
 |---|---|
 | **Base Branch** | `main` |
-| **Working Branch** | `main` |
-| **Active PR** | None |
-| **Current Phase** | **Phase 6 complete** — physical validation **in progress** |
+| **Working Branch** | `feat/timed-forwarding-window` (worker creates from `main`) |
+| **Active PR** | Pending — `feat/timed-forwarding-window` ready for `gh pr create` |
+| **Current Phase** | **Phase 7 implemented** (unmerged); plan: `docs/plans/2026-09-11-timed-forwarding.md` |
 | **App Version** | `1.1.0-debug` (CI-driven `versionCode`) |
-| **Unit Test Suite** | 62 tests passing (`./gradlew :app:testDebugUnitTest`) |
+| **Unit Test Suite** | 69 tests passing (`./gradlew :app:testDebugUnitTest`) |
 | **GitHub CI / Release** | Green; rolling `preview` release via CI-gated pipeline (`docs/RELEASE.md`) |
 | **Latest APK** | GitHub Releases → **Khidki preview (rolling)** → `khidki-1.1.0-debug-b*.apk` |
 | **Physical Test Status** | **Partial** — SMS receive confirmed; end-to-end forward **not yet validated** |
@@ -36,8 +36,8 @@
 
 | ID | Blocker | Impact | Proposed resolution |
 |---|---|---|---|
-| **B1** | Brother (requester) can only send **RCS**, not SMS | `req` command never reaches Khidki → window never arms | **Phase 7:** Manual "Open window" button in Status UI (owner taps instead of SMS `req`) |
-| **B2** | Owner initially expected **Master ON = auto-forward** | OTPs dropped with `NoActiveSession` even when SMS received | Document + UI copy clarifying Master ≠ bypass `req`; optional Phase 7 manual arm |
+| **B1** | Brother (requester) can only send **RCS**, not SMS | `req` command never reaches Khidki | **Mitigated in code:** Status → Timed forwarding (Path B in `docs/PHYSICAL_TEST.md`) — needs device validation |
+| **B2** | Owner initially expected **Master ON = auto-forward** | OTPs dropped with `NoActiveSession` even when SMS received | UI copy updated; timed arm documented on Status tab |
 | **B3** | **RCS is invisible** to Khidki (`SMS_RECEIVED` only) | Personal chat messages (Chotu) never processed | By locked design (`docs/DECISIONS.md`); bank/Blinkit OTPs **are SMS** and work once window armed |
 | **B4** | End-to-end forward **unproven** on device | P3 product gate still open | Complete test: arm window → trigger Blinkit OTP → verify forward to Chotu |
 
@@ -79,18 +79,18 @@
 - [x] **Release pipeline:** CI-gated publish, traceable APK artifacts (`docs/RELEASE.md`)
 - [x] **Physical partial:** SMS ingress on GT 6T; Blinkit OTP received; diagnostic stream validated
 
+### Completed (awaiting merge)
+
+- [x] **Phase 7: Timed forwarding window** — branch `feat/timed-forwarding-window`
+  - Domain: `SessionOrigin.TIMED`, multi-forward, engine `armTimedWindow` / `cancelTimedWindow`
+  - Data: Room v2 (`origin`, `forwardCount`), migration `KhidkiMigrations.MIGRATION_1_2`
+  - UI: `TimedForwardingCard`, credential gate, editable configs, History labels + notifier hooks
+  - Verified: 69 unit tests green; `audit_manifest.sh` PASS
+
 ### In progress (owner)
 
-- [ ] **Physical P3 gate:** Arm window → OTP forward → Chotu receives SMS
-- [ ] **Owner decision:** Approve Phase 7 manual arm button (bypasses SMS `req` for RCS-only requester)
-
-### Proposed next (pending owner approval)
-
-- [ ] **Phase 7: Manual window arm from UI**
-  - Status tab: "Open window for {rule label}" per config (or picker if multiple)
-  - Same 2-min window semantics as `req` success path
-  - Unblocks brother-RCS scenario without Notification Listener
-  - Plan: `docs/plans/` (to be written before implementation)
+- [ ] **Open PR + CI green** for Phase 7
+- [ ] **Physical P3 gate:** Path B timed arm → Blinkit OTP → Chotu receives SMS
 
 ---
 
@@ -102,6 +102,9 @@
 4. **One active window globally** — destination = canonical requester.
 5. **Two-strike rule** — two failed fix attempts → stop and ask owner.
 6. **Physical claims** — only owner marks device tests pass/fail.
+7. **Phase 7 timed window (locked 2026-09-11):** max 2h engine-enforced; one config at a time;
+   credential-gated enable; each forward logged; `req` single-forward semantics unchanged;
+   destination always the armed config's requester.
 
 ---
 
@@ -115,3 +118,5 @@
 | 2026-09-11 13:07 | (Laraib) | Phase 6 | PR #11 merged | Owner re-test |
 | 2026-09-11 14:30 | (Laraib) | Release fix | CI-gated pipeline; `1.1.0` traceable APKs | Install + test |
 | 2026-09-11 15:35 | (Laraib) | Physical test | SMS works; RCS `req` blocked; `NoActiveSession` understood | Owner approves Phase 7 manual arm |
+| 2026-09-11 16:15 | (Laraib) | Phase 7 plan | Timed window approved (2h max, multi-forward, one config, editable rules); plan written; RCS/WhatsApp/Telegram channels evaluated and rejected | Worker implements Tasks 0–7 on `feat/timed-forwarding-window` |
+| 2026-09-11 18:55 | (Laraib) | Phase 7 impl | Tasks 1–7 complete on `feat/timed-forwarding-window`; 69 tests + manifest audit green | Owner: PR + physical Path B (timed arm → P3) |

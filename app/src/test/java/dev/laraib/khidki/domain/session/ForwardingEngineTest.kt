@@ -18,8 +18,12 @@ import dev.laraib.khidki.domain.model.CredentialPolicy
 import dev.laraib.khidki.domain.model.FilterRules
 import dev.laraib.khidki.domain.model.SendOutcome
 import dev.laraib.khidki.domain.model.SendResult
+import dev.laraib.khidki.domain.model.SessionOrigin
 import dev.laraib.khidki.domain.model.SessionState
 import dev.laraib.khidki.domain.model.TerminalOutcome
+import dev.laraib.khidki.domain.model.TimedArmRejectReason
+import dev.laraib.khidki.domain.model.TimedArmResult
+import dev.laraib.khidki.domain.session.ForwardingEngine.Companion.MAX_TIMED_DURATION_SECONDS
 import dev.laraib.khidki.domain.ports.AuditStore
 import dev.laraib.khidki.domain.ports.ConfigurationRepository
 import dev.laraib.khidki.domain.ports.CredentialVerifier
@@ -219,6 +223,76 @@ class ForwardingEngineTest {
     }
 
     @Test
+    fun armTimedWindow_successArmsSessionWithoutAckSms() {
+        val result = engine.armTimedWindow(configId, 900)
+
+        assertTrue(result is TimedArmResult.Success)
+        val session = (result as TimedArmResult.Success).session
+        assertEquals(SessionOrigin.TIMED, session.origin)
+        assertEquals(SessionState.ARMED, session.state)
+        assertEquals(requester, session.requester)
+        assertEquals(0, session.forwardCount)
+        assertEquals(1_000L + 900_000L, session.expiresAtMillis)
+        assertTrue(smsTransport.sentMessages.isEmpty())
+    }
+
+    @Test
+    fun armTimedWindow_rejectsDurationAboveMax() {
+        val result = engine.armTimedWindow(configId, MAX_TIMED_DURATION_SECONDS + 1)
+        assertTrue(result is TimedArmResult.Rejected)
+        assertEquals(
+            TimedArmRejectReason.DURATION_OUT_OF_RANGE,
+            (result as TimedArmResult.Rejected).reason,
+        )
+    }
+
+    @Test
+    fun armTimedWindow_multiForwardStaysArmedAndIncrementsCount() {
+        engine.armTimedWindow(configId, 900)
+
+        val first = engine.handleCandidate("VM-HDFCBK", "Your OTP is 654321")
+        assertTrue(first is CandidateHandleResult.Forwarded)
+        val afterFirst = (first as CandidateHandleResult.Forwarded).session
+        assertEquals(SessionState.ARMED, afterFirst.state)
+        assertEquals(SessionOrigin.TIMED, afterFirst.origin)
+        assertEquals(1, afterFirst.forwardCount)
+
+        val second = engine.handleCandidate("VM-HDFCBK", "654321 again")
+        assertTrue(second is CandidateHandleResult.Forwarded)
+        assertEquals(2, (second as CandidateHandleResult.Forwarded).session.forwardCount)
+        assertEquals(2, smsTransport.sentMessages.size)
+        assertEquals(requester, smsTransport.sentMessages[0].to)
+        assertEquals(requester, smsTransport.sentMessages[1].to)
+    }
+
+    @Test
+    fun armTimedWindow_reqDuringTimedWindowReturnsIgnoredActiveSession() {
+        engine.armTimedWindow(configId, 900)
+
+        val reqDuringTimed = engine.handleCommand(requester, password)
+        assertEquals(CommandHandleResult.IgnoredActiveSession, reqDuringTimed)
+        assertTrue(smsTransport.sentMessages.isEmpty())
+    }
+
+    @Test
+    fun armTimedWindow_cancelRecordsTimedCancellation() {
+        engine.armTimedWindow(configId, 900)
+        assertTrue(engine.cancelTimedWindow())
+
+        assertNull(sessionRepository.getActiveSession())
+    }
+
+    @Test
+    fun armTimedWindow_expiryTerminatesTimedSession() {
+        engine.armTimedWindow(configId, 60)
+        clock.advanceMillis(61_000L)
+
+        engine.refreshSessions()
+
+        assertNull(sessionRepository.getActiveSession())
+    }
+
+    @Test
     fun handleCommand_ackFailureDoesNotCreateSession() {
         smsTransport.failNextSend = true
 
@@ -274,6 +348,9 @@ class ForwardingEngineTest {
     ) : ConfigurationRepository {
         override fun findByRequester(requester: CanonicalPhone): Configuration? =
             if (requester == configuration.requester) configuration else null
+
+        override fun findById(id: ConfigurationId): Configuration? =
+            if (id == configuration.id) configuration else null
 
         override fun findAll(): List<Configuration> = listOf(configuration)
     }

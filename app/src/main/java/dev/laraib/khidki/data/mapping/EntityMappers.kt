@@ -16,6 +16,7 @@ import dev.laraib.khidki.domain.model.CredentialPolicy
 import dev.laraib.khidki.domain.model.FilterRules
 import dev.laraib.khidki.domain.model.HistoryEvent
 import dev.laraib.khidki.domain.model.HistoryEventType
+import dev.laraib.khidki.domain.model.SessionOrigin
 import dev.laraib.khidki.domain.model.SessionState
 import dev.laraib.khidki.domain.model.TerminalOutcome
 import org.json.JSONArray
@@ -108,6 +109,7 @@ internal fun decodeConfigurationSnapshot(json: String): Configuration {
 
 internal fun SessionEntity.toDomain(): AuthorizationSession {
     val snapshot = decodeConfigurationSnapshot(configurationSnapshotJson)
+    val sessionOrigin = SessionOrigin.valueOf(origin)
     return AuthorizationSession(
         id = UUID.fromString(id),
         configurationId = ConfigurationId.parse(configurationId),
@@ -125,8 +127,14 @@ internal fun SessionEntity.toDomain(): AuthorizationSession {
         submittedAtMillis = submittedAtMillis,
         bootId = bootId,
         credentialId = credentialId?.let(UUID::fromString),
-        forwarded = state == SessionState.SUBMITTED.name &&
-            terminalOutcome == TerminalOutcome.COMPLETED.name,
+        origin = sessionOrigin,
+        forwardCount = forwardCount,
+        forwarded = when (sessionOrigin) {
+            SessionOrigin.TIMED -> forwardCount > 0
+            SessionOrigin.REQUEST ->
+                state == SessionState.SUBMITTED.name &&
+                    terminalOutcome == TerminalOutcome.COMPLETED.name
+        },
     )
 }
 
@@ -146,6 +154,8 @@ internal fun AuthorizationSession.toEntity(): SessionEntity {
         submittedAtMillis = submittedAtMillis,
         bootId = bootId,
         credentialId = credentialId?.toString(),
+        origin = origin.name,
+        forwardCount = forwardCount,
     )
 }
 

@@ -12,6 +12,7 @@ SHORT_SHA="${GIT_SHA:0:7}"
 BUILD_TIME="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 RUN_ID="${GITHUB_RUN_ID:-local}"
 RUN_NUMBER="${GITHUB_RUN_NUMBER:-0}"
+RELEASE_TAG="${KHIDKI_RELEASE_TAG:-${KHIDKI_RELEASE_CHANNEL:-preview}}"
 
 SRC_APK="$(find app/build/outputs/apk/debug -name '*.apk' -type f | sort | head -1)"
 if [[ -z "$SRC_APK" ]]; then
@@ -41,7 +42,8 @@ cat > "$OUT_DIR/release-metadata.json" <<EOF
   "workflowRunId": "${RUN_ID}",
   "workflowRunNumber": ${RUN_NUMBER},
   "apkFile": "${APK_BASENAME}",
-  "channel": "${KHIDKI_RELEASE_CHANNEL:-preview}"
+  "channel": "${KHIDKI_RELEASE_CHANNEL:-preview}",
+  "releaseTag": "${RELEASE_TAG}"
 }
 EOF
 

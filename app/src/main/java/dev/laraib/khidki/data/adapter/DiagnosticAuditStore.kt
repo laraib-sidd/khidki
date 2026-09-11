@@ -31,6 +31,9 @@ class DiagnosticAuditStore(
             AuditEventType.ACK_FAILED -> "ACK failed ($requester)"
             AuditEventType.FORWARD_SENT -> "FWD sent to $requester"
             AuditEventType.FORWARD_FAILED -> "FWD failed ($requester)"
+            AuditEventType.TIMED_ARMED -> "TIMED armed for $requester (${event.detail ?: ""})".trim()
+            AuditEventType.TIMED_CANCELLED -> "TIMED cancelled ($requester)"
+            AuditEventType.TIMED_EXPIRED -> "TIMED expired ($requester)"
         }
     }
 

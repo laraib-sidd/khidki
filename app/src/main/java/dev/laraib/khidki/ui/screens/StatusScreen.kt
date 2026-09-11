@@ -35,12 +35,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.fragment.app.FragmentActivity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import dev.laraib.khidki.domain.model.AuthorizationSession
+import dev.laraib.khidki.domain.model.SessionOrigin
 import dev.laraib.khidki.ui.KhidkiUiState
 import dev.laraib.khidki.ui.KhidkiViewModel
 import dev.laraib.khidki.ui.components.DiagnosticChipType
+import dev.laraib.khidki.ui.components.TimedForwardingCard
 import dev.laraib.khidki.ui.components.UiUtils
 import dev.laraib.khidki.ui.theme.StatusAmber
 import dev.laraib.khidki.ui.theme.StatusAmberBg
@@ -64,6 +67,7 @@ fun StatusScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val fragmentActivity = context as? FragmentActivity
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -76,6 +80,17 @@ fun StatusScreen(
             masterEnabled = state.masterEnabled,
             hasSmsPermission = hasSmsPermission,
             onMasterToggle = { viewModel.setMasterEnabled(it, hasSmsPermission) },
+        )
+
+        TimedForwardingCard(
+            configurations = state.configurations,
+            activeSession = state.activeSession,
+            masterEnabled = state.masterEnabled,
+            hasSmsPermission = hasSmsPermission,
+            activity = fragmentActivity,
+            onArm = { configId, durationSeconds ->
+                viewModel.armTimedWindow(configId, durationSeconds, hasSmsPermission)
+            },
         )
 
         state.activeSession?.let { session ->
@@ -226,8 +241,14 @@ private fun ActiveWindowCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            val windowTitle =
+                if (session.origin == SessionOrigin.TIMED) {
+                    "Timed forwarding: ${session.label}"
+                } else {
+                    "Active forwarding window: ${session.label}"
+                }
             Text(
-                text = "Active forwarding window: ${session.label}",
+                text = windowTitle,
                 style = MaterialTheme.typography.titleMedium,
             )
             Text(
@@ -242,6 +263,12 @@ private fun ActiveWindowCard(
                 text = "%02d:%02d remaining".format(minutes, seconds),
                 style = MaterialTheme.typography.bodyMedium,
             )
+            if (session.origin == SessionOrigin.TIMED) {
+                Text(
+                    text = "${session.forwardCount} message(s) forwarded",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
             Text(
                 text = "${session.windowSeconds}s window",
                 style = MaterialTheme.typography.bodySmall,
@@ -264,7 +291,7 @@ private fun EmptySessionCard() {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Text(
-            text = "No active window. Engine is armed and awaiting a `req <password>` SMS.",
+            text = "No active window. Arm timed forwarding above, or send a `req <password>` SMS.",
             modifier = Modifier.padding(16.dp),
             style = MaterialTheme.typography.bodyMedium,
         )

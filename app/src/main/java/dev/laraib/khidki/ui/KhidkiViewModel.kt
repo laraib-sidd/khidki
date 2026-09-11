@@ -15,6 +15,8 @@ import dev.laraib.khidki.domain.model.CredentialPolicy
 import dev.laraib.khidki.domain.model.FilterRules
 import dev.laraib.khidki.domain.model.HistoryEvent
 import dev.laraib.khidki.domain.model.PhoneNormalizeResult
+import dev.laraib.khidki.domain.model.TimedArmRejectReason
+import dev.laraib.khidki.domain.model.TimedArmResult
 import dev.laraib.khidki.domain.phone.PhoneNormalizer
 import dev.laraib.khidki.platform.diagnostics.DiagnosticEventBus
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -78,11 +80,114 @@ class KhidkiViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun cancelActiveSession(hasSmsPermission: Boolean) {
-        val cancelled = runtime.engine.cancelActiveWindow()
+        val cancelled =
+            runtime.engine.cancelTimedWindow() || runtime.engine.cancelActiveWindow()
         if (cancelled) {
             DiagnosticEventBus.record("UI cancelled active window")
         }
         refresh(hasSmsPermission)
+    }
+
+    fun armTimedWindow(
+        configId: ConfigurationId,
+        durationSeconds: Int,
+        hasSmsPermission: Boolean,
+    ) {
+        viewModelScope.launch {
+            when (val result = runtime.engine.armTimedWindow(configId, durationSeconds)) {
+                is TimedArmResult.Success -> {
+                    DiagnosticEventBus.record("UI armed timed window (${durationSeconds}s)")
+                    refresh(hasSmsPermission)
+                }
+                is TimedArmResult.Rejected -> {
+                    _uiState.value =
+                        _uiState.value.copy(
+                            errorMessage = timedArmErrorMessage(result.reason),
+                        )
+                }
+            }
+        }
+    }
+
+    fun updateConfiguration(
+        id: ConfigurationId,
+        label: String,
+        requesterRaw: String,
+        senderPattern: String,
+        contentPattern: String,
+        windowSeconds: Int,
+        hasSmsPermission: Boolean,
+        onCommand: (String) -> Unit,
+    ) {
+        viewModelScope.launch {
+            val existing =
+                _uiState.value.configurations.find { it.id == id }
+                    ?: run {
+                        _uiState.value = _uiState.value.copy(errorMessage = "Configuration not found")
+                        return@launch
+                    }
+            val patternError = ConfigurationValidator.validatePatterns(senderPattern, contentPattern)
+            if (patternError != null) {
+                _uiState.value = _uiState.value.copy(errorMessage = patternError)
+                return@launch
+            }
+            if (windowSeconds !in CredentialPolicy.MIN_WINDOW_SECONDS..CredentialPolicy.MAX_WINDOW_SECONDS) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        errorMessage =
+                            "Window must be between ${CredentialPolicy.MIN_WINDOW_SECONDS} and " +
+                                "${CredentialPolicy.MAX_WINDOW_SECONDS} seconds",
+                    )
+                return@launch
+            }
+            val requester =
+                normalizePhone(requesterRaw)
+                    ?: run {
+                        _uiState.value = _uiState.value.copy(errorMessage = "Invalid requester number")
+                        return@launch
+                    }
+            val requesterChanged = existing.requester.e164 != requester.e164
+            val now = runtime.clock.nowMillis()
+            val updated =
+                existing.copy(
+                    label = label.ifBlank { "Config" },
+                    requester = requester,
+                    filterRules =
+                        FilterRules(
+                            senderPatterns = listOf(senderPattern),
+                            contentPatterns = listOf(contentPattern),
+                        ),
+                    rules =
+                        FilterRules(
+                            senderPatterns = listOf(senderPattern),
+                            contentPatterns = listOf(contentPattern),
+                        ),
+                    credentialPolicy =
+                        existing.credentialPolicy.copy(
+                            windowSeconds = windowSeconds,
+                        ),
+                    windowSeconds = windowSeconds,
+                    version = ConfigurationVersion(existing.version.n + 1),
+                    updatedAtMillis = now,
+                )
+            Blocking.io { container.configurationRepository.upsert(updated) }
+            if (requesterChanged) {
+                Blocking.io { container.credentialStore.revokeForConfiguration(id) }
+                val password = credentialGenerator.generate()
+                val expiresAt = now + updated.credentialPolicy.lifetimeMs
+                Blocking.io {
+                    container.credentialStore.createCredential(
+                        requester = requester,
+                        configurationId = id,
+                        password = password,
+                        createdAtMillis = now,
+                        expiresAtMillis = expiresAt,
+                    )
+                }
+                onCommand("req $password")
+            }
+            refresh(hasSmsPermission)
+        }
     }
 
     fun saveConfiguration(
@@ -165,5 +270,15 @@ class KhidkiViewModel(application: Application) : AndroidViewModel(application) 
         when (val result = phoneNormalizer.normalize(raw)) {
             is PhoneNormalizeResult.Success -> result.phone
             else -> null
+        }
+
+    private fun timedArmErrorMessage(reason: TimedArmRejectReason): String =
+        when (reason) {
+            TimedArmRejectReason.CONFIGURATION_NOT_FOUND -> "Forwarding rule not found"
+            TimedArmRejectReason.CONFIGURATION_DISABLED -> "Forwarding rule is disabled"
+            TimedArmRejectReason.ACTIVE_SESSION_EXISTS -> "Another forwarding window is already active"
+            TimedArmRejectReason.DURATION_OUT_OF_RANGE -> "Duration must be between 1 and 120 minutes"
+            TimedArmRejectReason.APP_PAUSED -> "Turn on Master forwarding first"
+            TimedArmRejectReason.APP_NOT_READY -> "Engine is not ready"
         }
 }

@@ -23,8 +23,6 @@ jobs:
       startsWith(github.ref, 'refs/tags/v') ||
       github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    env:
-      KHIDKI_RELEASE_CHANNEL: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'preview' }}
     steps:
       - name: Resolve checkout ref
         id: checkout_ref
@@ -63,6 +61,17 @@ jobs:
           echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
           echo "code=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
 
+      - name: Compute release tag
+        id: release_tag
+        run: |
+          if [[ "${{ startsWith(github.ref, 'refs/tags/v') }}" == "true" ]]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "channel=versioned" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=build/b${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+            echo "channel=build" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Decode preview keystore override if present
         env:
           KEYSTORE_B64: ${{ secrets.KHIDKI_PREVIEW_KEYSTORE_BASE64 }}
@@ -89,7 +98,8 @@ jobs:
         env:
           KHIDKI_VERSION_NAME: ${{ steps.version.outputs.name }}
           KHIDKI_VERSION_CODE: ${{ steps.version.outputs.code }}
-          KHIDKI_RELEASE_CHANNEL: ${{ env.KHIDKI_RELEASE_CHANNEL }}
+          KHIDKI_RELEASE_CHANNEL: ${{ steps.release_tag.outputs.channel }}
+          KHIDKI_RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
         run: |
           bash scripts/prepare_release_apk.sh
           echo "apk_basename=$(jq -r .apkFile release-artifacts/release-metadata.json)" >> "$GITHUB_OUTPUT"
@@ -99,7 +109,8 @@ jobs:
         env:
           KHIDKI_VERSION_NAME: ${{ steps.version.outputs.name }}
           KHIDKI_VERSION_CODE: ${{ steps.version.outputs.code }}
-          KHIDKI_RELEASE_CHANNEL: ${{ env.KHIDKI_RELEASE_CHANNEL }}
+          KHIDKI_RELEASE_CHANNEL: ${{ steps.release_tag.outputs.channel }}
+          KHIDKI_RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
           APK_BASENAME: ${{ steps.package.outputs.apk_basename }}
         run: |
           NOTES_FILE=release-artifacts/RELEASE_NOTES.md
@@ -107,21 +118,38 @@ jobs:
           echo "file=$NOTES_FILE" >> "$GITHUB_OUTPUT"
 
       - name: Prune legacy generic APK assets
-        if: env.KHIDKI_RELEASE_CHANNEL == 'preview'
+        if: steps.release_tag.outputs.channel == 'build'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release delete-asset preview app-debug.apk -R "${{ github.repository }}" -y || true
 
-      - name: Publish rolling preview release
-        if: env.KHIDKI_RELEASE_CHANNEL == 'preview'
+      - name: Publish immutable build release
+        if: steps.release_tag.outputs.channel == 'build'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: preview
-          name: Khidki preview (rolling)
+          tag_name: ${{ steps.release_tag.outputs.tag }}
+          name: Khidki ${{ steps.version.outputs.name }}-debug (${{ steps.release_tag.outputs.tag }})
           body_path: release-artifacts/RELEASE_NOTES.md
           prerelease: true
           make_latest: true
+          files: |
+            release-artifacts/*.apk
+            release-artifacts/*.sha256
+            release-artifacts/release-metadata.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Refresh rolling preview pointer
+        if: steps.release_tag.outputs.channel == 'build'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: preview
+          target_commitish: ${{ steps.checkout_ref.outputs.ref }}
+          name: Khidki preview (rolling → ${{ steps.release_tag.outputs.tag }})
+          body_path: release-artifacts/RELEASE_NOTES.md
+          prerelease: true
+          make_latest: false
           overwrite_files: true
           files: |
             release-artifacts/*.apk
@@ -131,14 +159,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish versioned release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: steps.release_tag.outputs.channel == 'versioned'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Khidki ${{ github.ref_name }}
+          tag_name: ${{ steps.release_tag.outputs.tag }}
+          name: Khidki ${{ steps.release_tag.outputs.tag }}
           body_path: release-artifacts/RELEASE_NOTES.md
-          prerelease: ${{ contains(github.ref_name, 'preview') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
-          make_latest: ${{ !contains(github.ref_name, 'preview') && !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'alpha') }}
+          prerelease: ${{ contains(steps.release_tag.outputs.tag, 'preview') || contains(steps.release_tag.outputs.tag, 'beta') || contains(steps.release_tag.outputs.tag, 'alpha') }}
+          make_latest: ${{ !contains(steps.release_tag.outputs.tag, 'preview') && !contains(steps.release_tag.outputs.tag, 'beta') && !contains(steps.release_tag.outputs.tag, 'alpha') }}
           overwrite_files: true
           files: |
             release-artifacts/*.apk

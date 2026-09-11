@@ -50,4 +50,7 @@ interface CredentialDao {
 
     @Query("DELETE FROM credentials WHERE expiresAtMillis <= :nowMillis")
     suspend fun deleteExpired(nowMillis: Long)
+
+    @Query("DELETE FROM credentials WHERE configurationId = :configurationId")
+    suspend fun deleteForConfiguration(configurationId: String)
 }

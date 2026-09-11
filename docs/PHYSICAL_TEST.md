@@ -6,8 +6,9 @@ Install the **rolling preview** APK from the private GitHub Release. This is sid
 
 ## Install
 
-1. Download `khidki-1.1.0-debug-b*.apk` from GitHub Releases → **Khidki preview (rolling)** (`preview` tag).
-2. Do **not** use stale `v1.0.0-preview` milestone unless intentionally pinned.
+1. Download `khidki-1.1.0-debug-b*.apk` from GitHub Releases → **Latest** or **`preview`** (rolling alias).
+2. Record the `build/b<N>` tag in trial notes for reproducibility.
+3. Do **not** use stale `v1.0.0-preview` milestone unless intentionally pinned.
 3. See `docs/RELEASE.md` for checksum verification.
 
 ## Before any SMS
@@ -37,7 +38,7 @@ Install the **rolling preview** APK from the private GitHub Release. This is sid
 | **SMS** | Blinkit OTP (`CP-blnkit-S`), bank OTP | **Yes** — `[IN]` in diagnostic stream |
 | **RCS** | Google Messages chat with Chotu, "RCS chat" header | **No** — invisible to Khidki |
 
-- **`req` from brother must be SMS**, not RCS, unless Phase 7 manual arm is implemented.
+- **`req` from brother must be SMS**, not RCS — use **Path B (timed arm)** when brother is RCS-only.
 - **OTP sources** (Blinkit, banks) are SMS — they work once a window is armed.
 
 ### Diagnostic stream vs History
@@ -62,12 +63,17 @@ Use rule **"Chotu Test"** (requester = brother's number, sender `.*`, content OT
 5. Status: `[CANDIDATE] Forwarded`. Brother receives forwarded OTP SMS.
 6. Fill P3 row below.
 
-### Path B — Manual arm (Phase 7, not yet built)
+### Path B — Timed arm (Phase 7, RCS-only requester workaround)
 
 1. Master **ON**.
-2. Laraib taps **"Open window for Chotu Test"** in Status (future feature).
-3. Trigger Blinkit login within 2 min.
-4. Verify forward to brother.
+2. Status → **Timed forwarding** → select rule (e.g. Chotu Test) → duration **15m** → enable switch.
+3. Confirm device credential (PIN / pattern / biometric).
+4. Active window card shows **Timed forwarding** with countdown.
+5. Within the armed duration: trigger Blinkit login (or send test OTP SMS).
+6. Status: `[CANDIDATE] Forwarded` (and optional notification). Brother receives forwarded OTP SMS.
+7. Optional: second OTP within same window → second forward; `forwardCount` increments.
+8. Optional: wait for expiry or tap **Cancel active window** → `TIMED_EXPIRED` / `TIMED_CANCELLED` in History.
+9. Fill P3 row below.
 
 ### Path C — Diagnostic only (current blocker state)
 

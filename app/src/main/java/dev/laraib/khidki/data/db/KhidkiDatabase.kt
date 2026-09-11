@@ -30,7 +30,7 @@ import dev.laraib.khidki.data.db.entities.SessionEntity
         HistoryEntity::class,
         AppSettingsEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class KhidkiDatabase : RoomDatabase() {

@@ -4,8 +4,11 @@
 
 | Channel | Tag | When it publishes | Install target |
 |---|---|---|---|
-| **Rolling preview** | `preview` | After `ci` passes on `main` | **Default for device testing** |
-| **Versioned snapshot** | `v*` (e.g. `v1.1.0-preview`) | On git tag push | Milestone / audit snapshots |
+| **Per-build (immutable)** | `build/b<N>` | After `ci` passes on `main` (one per merge/push) | Pin a specific build for audit/debug |
+| **Rolling preview** | `preview` | Same run — updated to match latest `build/b<N>` | **Default for device testing** (stable URL) |
+| **Versioned snapshot** | `v*` (e.g. `v1.1.0-preview`) | On manual git tag push | Milestone / audit snapshots |
+
+Example: merge to `main` → CI green → release workflow creates **`build/b48`** (immutable) **and** refreshes **`preview`** (same APK).
 
 ## Pipeline (production standard)
 
@@ -20,24 +23,31 @@ flowchart LR
   REL --> BUILD[test + assembleDebug]
   BUILD --> AUDIT[audit_manifest.sh]
   AUDIT --> PKG[prepare_release_apk.sh]
-  PKG --> GH[GitHub Release preview]
+  PKG --> TAG[tag build/bN + GitHub Release]
+  TAG --> PREVIEW[refresh preview pointer]
 ```
 
 ### Guarantees
 1. **No release without green CI** — `release` triggers via `workflow_run` after `ci` succeeds on `main`.
 2. **Traceable artifacts** — APK filename includes version, build number, and git SHA.
-3. **Checksums** — `.sha256` sidecar uploaded with every APK.
-4. **Metadata** — `release-metadata.json` records version, commit, workflow run.
-5. **Rolling `preview` is Latest** — stale milestone tags are not the default install target.
+3. **Immutable history** — every main push gets a unique `build/b<N>` tag and release (never overwritten).
+4. **Checksums** — `.sha256` sidecar uploaded with every APK.
+5. **Metadata** — `release-metadata.json` records version, commit, workflow run, and `releaseTag`.
+6. **Latest = newest build** — `make_latest: true` on each `build/b<N>`; `preview` is a stable alias.
 
 ## Install (Realme GT 6T)
 
-1. Open [Releases](https://github.com/laraib-sidd/khidki/releases) → **Khidki preview (rolling)** (`preview` tag).
-2. Download the `khidki-*-debug-b*.apk` (not the old generic `app-debug.apk` on legacy tags).
-3. Optional: verify `sha256sum -c <apk>.sha256`.
-4. Sideload over existing Khidki debug build (same keystore; requires higher `versionCode`).
+**Option A — latest (recommended):**
+1. [Releases](https://github.com/laraib-sidd/khidki/releases) → filter **Latest** or open **`preview`**.
+2. Download `khidki-*-debug-b*.apk`.
 
-> **Physical test note (2026-09-11):** Build `1.1.0` confirmed SMS receive on device. End-to-end OTP forward pending armed window. See `docs/PHYSICAL_TEST.md` and `docs/COORDINATION.md` blockers.
+**Option B — pin a specific build:**
+1. [Releases](https://github.com/laraib-sidd/khidki/releases) → pick `build/b47` (or whatever build you tested).
+2. Download that release's APK + optional `.sha256` verify.
+
+3. Sideload over existing Khidki debug build (same keystore; requires higher `versionCode`).
+
+> **Physical test note:** Record the `build/b<N>` tag in trial notes so results are reproducible.
 
 ## Manual release trigger
 
@@ -45,16 +55,16 @@ flowchart LR
 gh workflow run release.yml --ref main
 ```
 
-Use only when recovering from a failed publish — normal path is merge → CI → release.
+Creates a new `build/b<N>` (increments release workflow run number). Use only when recovering from a failed publish.
 
 ## Versioned milestone release
 
 ```bash
-git tag -a v1.1.0-preview -m "Phase 6 UI/UX revamp"
-git push origin v1.1.0-preview
+git tag -a v1.2.0-preview -m "Phase 7 timed forwarding"
+git push origin v1.2.0-preview
 ```
 
-Creates an immutable release with the same artifact packaging.
+Creates an additional immutable release at that tag (does not replace `build/b*` history).
 
 ## Secrets (optional)
 
@@ -66,6 +76,8 @@ Creates an immutable release with the same artifact packaging.
 
 ```bash
 export KHIDKI_VERSION_CODE=999
+export KHIDKI_RELEASE_TAG=build/b999
+export KHIDKI_RELEASE_CHANNEL=build
 ./gradlew :app:testDebugUnitTest :app:assembleDebug
 bash scripts/audit_manifest.sh
 export KHIDKI_VERSION_NAME=1.1.0

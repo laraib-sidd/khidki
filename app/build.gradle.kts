@@ -58,6 +58,11 @@ android {
     room {
         schemaDirectory("$projectDir/schemas")
     }
+    sourceSets {
+        getByName("test") {
+            assets.srcDir("$projectDir/schemas")
+        }
+    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -86,6 +91,7 @@ dependencies {
     implementation(libs.re2j)
     implementation(libs.libphonenumber)
     implementation(libs.security.crypto)
+    implementation(libs.biometric)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)

@@ -63,8 +63,9 @@ See `docs/COORDINATION.md` Section 2. Summary: SMS ingress works; end-to-end for
 
 See `docs/RELEASE.md` for the full runbook.
 
-- **Rolling preview**: `preview` tag on GitHub Releases — auto-published after `ci` passes on `main`.
-- **Versioned snapshots**: push a `v*` git tag for immutable milestone releases.
+- **Per-build releases**: `build/b<N>` tag + GitHub Release on every `main` push (after green CI) — immutable audit trail.
+- **Rolling preview**: `preview` tag updated to match the latest `build/b<N>` — stable install URL.
+- **Versioned snapshots**: push a `v*` git tag for manual milestone releases.
 - APKs are named `khidki-<version>-debug-b<build>-<sha>.apk` with `.sha256` checksums.
-- Install target for device testing: **Khidki preview (rolling)** — not legacy `v1.0.0-preview` unless pinned.
+- Install target for device testing: **Latest** or **`preview`**; pin `build/b<N>` when recording physical test results.
 - Debug APKs use the committed deterministic keystore in `app/debug-keystore/` unless `KHIDKI_PREVIEW_KEYSTORE_BASE64` is set in GitHub secrets.

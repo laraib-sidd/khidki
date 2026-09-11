@@ -9,6 +9,10 @@ import dev.laraib.khidki.domain.model.AuthResult
 import dev.laraib.khidki.domain.model.CandidateHandleResult
 import dev.laraib.khidki.domain.model.CanonicalPhone
 import dev.laraib.khidki.domain.model.CommandHandleResult
+import dev.laraib.khidki.domain.model.ConfigurationId
+import dev.laraib.khidki.domain.model.SessionOrigin
+import dev.laraib.khidki.domain.model.TimedArmRejectReason
+import dev.laraib.khidki.domain.model.TimedArmResult
 import dev.laraib.khidki.domain.model.RuleMatchOutcome
 import dev.laraib.khidki.domain.model.SendOutcome
 import dev.laraib.khidki.domain.model.SessionState
@@ -166,6 +170,73 @@ class ForwardingEngine(
         return CommandHandleResult.SessionCreated(session)
     }
 
+    fun armTimedWindow(configId: ConfigurationId, durationSeconds: Int): TimedArmResult {
+        refreshSessions()
+
+        if (appState == AppState.PAUSED) {
+            return TimedArmResult.Rejected(TimedArmRejectReason.APP_PAUSED)
+        }
+        if (appState != AppState.READY) {
+            return TimedArmResult.Rejected(TimedArmRejectReason.APP_NOT_READY)
+        }
+        if (durationSeconds < MIN_TIMED_DURATION_SECONDS || durationSeconds > MAX_TIMED_DURATION_SECONDS) {
+            return TimedArmResult.Rejected(TimedArmRejectReason.DURATION_OUT_OF_RANGE)
+        }
+
+        val configuration = configurationRepository.findById(configId)
+            ?: return TimedArmResult.Rejected(TimedArmRejectReason.CONFIGURATION_NOT_FOUND)
+        if (!configuration.enabled) {
+            return TimedArmResult.Rejected(TimedArmRejectReason.CONFIGURATION_DISABLED)
+        }
+
+        val activeSession = sessionRepository.getActiveSession()
+        if (activeSession != null && activeSession.isActive) {
+            return TimedArmResult.Rejected(TimedArmRejectReason.ACTIVE_SESSION_EXISTS)
+        }
+        if (activeSession != null && !activeSession.isActive) {
+            sessionRepository.saveSession(null)
+        }
+
+        val now = clock.nowMillis()
+        val session = AuthorizationSession(
+            id = UUID.randomUUID(),
+            configurationId = configuration.id,
+            configurationVersion = configuration.version,
+            requester = configuration.requester,
+            label = configuration.label,
+            filterRules = configuration.filterRules,
+            state = SessionState.ARMED,
+            armedAtMillis = now,
+            expiresAtMillis = now + durationSeconds * 1_000L,
+            bootId = clock.bootId(),
+            windowSeconds = durationSeconds,
+            configurationSnapshot = configuration,
+            origin = SessionOrigin.TIMED,
+            forwardCount = 0,
+        )
+        sessionRepository.saveSession(session)
+        auditStore.record(
+            AuditEvent(
+                type = AuditEventType.TIMED_ARMED,
+                atMillis = now,
+                requester = configuration.requester,
+                sessionId = session.id,
+                detail = "${durationSeconds}s",
+            ),
+        )
+        return TimedArmResult.Success(session)
+    }
+
+    fun cancelTimedWindow(): Boolean {
+        refreshSessions()
+        val session = sessionRepository.getActiveSession() ?: return false
+        if (!session.isActive || session.origin != SessionOrigin.TIMED) {
+            return false
+        }
+        terminateSession(session, TerminalOutcome.CANCELLED)
+        return true
+    }
+
     fun handleCandidate(
         sender: String,
         body: String,
@@ -185,11 +256,20 @@ class ForwardingEngine(
 
         val refreshedSession = sessionRepository.getActiveSession()
             ?: return CandidateHandleResult.SessionExpired
-        if (refreshedSession.forwarded || refreshedSession.state == SessionState.SUBMITTED) {
-            return CandidateHandleResult.AlreadyForwarded
-        }
-        if (refreshedSession.state == SessionState.SUBMITTING) {
-            return CandidateHandleResult.AlreadyForwarded
+        when (refreshedSession.origin) {
+            SessionOrigin.REQUEST -> {
+                if (refreshedSession.forwarded || refreshedSession.state == SessionState.SUBMITTED) {
+                    return CandidateHandleResult.AlreadyForwarded
+                }
+                if (refreshedSession.state == SessionState.SUBMITTING) {
+                    return CandidateHandleResult.AlreadyForwarded
+                }
+            }
+            SessionOrigin.TIMED -> {
+                if (refreshedSession.state == SessionState.SUBMITTING) {
+                    return CandidateHandleResult.AlreadyForwarded
+                }
+            }
         }
 
         val match = ruleMatcher.matches(
@@ -226,20 +306,46 @@ class ForwardingEngine(
         sessionRepository.saveSession(submitting)
 
         val sendResult = smsTransport.send(refreshedSession.requester, body)
-        val finalSession = if (sendResult.outcome == SendOutcome.SENT) {
-            submitting.copy(
-                state = SessionState.SUBMITTED,
-                forwarded = true,
-                terminalOutcome = TerminalOutcome.COMPLETED,
-                submittedAtMillis = clock.nowMillis(),
-            )
-        } else {
-            submitting.copy(
-                state = SessionState.SUBMITTED,
-                forwarded = false,
-                terminalOutcome = TerminalOutcome.FAILED,
-                submittedAtMillis = clock.nowMillis(),
-            )
+        val now = clock.nowMillis()
+        val finalSession = when (refreshedSession.origin) {
+            SessionOrigin.TIMED -> {
+                if (sendResult.outcome == SendOutcome.SENT) {
+                    submitting.copy(
+                        state = SessionState.ARMED,
+                        forwarded = true,
+                        forwardCount = refreshedSession.forwardCount + 1,
+                        claimedAtMillis = null,
+                        submittedAtMillis = now,
+                        terminalOutcome = null,
+                    )
+                } else {
+                    submitting.copy(
+                        state = SessionState.ARMED,
+                        forwarded = refreshedSession.forwarded,
+                        forwardCount = refreshedSession.forwardCount,
+                        claimedAtMillis = null,
+                        submittedAtMillis = now,
+                        terminalOutcome = null,
+                    )
+                }
+            }
+            SessionOrigin.REQUEST -> {
+                if (sendResult.outcome == SendOutcome.SENT) {
+                    submitting.copy(
+                        state = SessionState.SUBMITTED,
+                        forwarded = true,
+                        terminalOutcome = TerminalOutcome.COMPLETED,
+                        submittedAtMillis = now,
+                    )
+                } else {
+                    submitting.copy(
+                        state = SessionState.SUBMITTED,
+                        forwarded = false,
+                        terminalOutcome = TerminalOutcome.FAILED,
+                        submittedAtMillis = now,
+                    )
+                }
+            }
         }
         sessionRepository.saveSession(finalSession)
 
@@ -247,7 +353,7 @@ class ForwardingEngine(
             auditStore.record(
                 AuditEvent(
                     type = AuditEventType.CANDIDATE_FORWARDED,
-                    atMillis = clock.nowMillis(),
+                    atMillis = now,
                     requester = refreshedSession.requester,
                     sessionId = refreshedSession.id,
                 ),
@@ -258,7 +364,7 @@ class ForwardingEngine(
         auditStore.record(
             AuditEvent(
                 type = AuditEventType.FORWARD_FAILED,
-                atMillis = clock.nowMillis(),
+                atMillis = now,
                 requester = refreshedSession.requester,
                 sessionId = refreshedSession.id,
             ),
@@ -298,9 +404,12 @@ class ForwardingEngine(
 
     private fun terminateSession(session: AuthorizationSession, outcome: TerminalOutcome) {
         sessionRepository.terminateSession(session.id, outcome)
-        val eventType = when (outcome) {
-            TerminalOutcome.CANCELLED -> AuditEventType.SESSION_CANCELLED
-            TerminalOutcome.EXPIRED -> AuditEventType.SESSION_EXPIRED
+        val eventType = when {
+            session.origin == SessionOrigin.TIMED && outcome == TerminalOutcome.CANCELLED ->
+                AuditEventType.TIMED_CANCELLED
+            session.origin == SessionOrigin.TIMED && outcome == TerminalOutcome.EXPIRED ->
+                AuditEventType.TIMED_EXPIRED
+            outcome == TerminalOutcome.CANCELLED -> AuditEventType.SESSION_CANCELLED
             else -> AuditEventType.SESSION_EXPIRED
         }
         auditStore.record(
@@ -326,6 +435,9 @@ class ForwardingEngine(
     }
 
     companion object {
+        const val MIN_TIMED_DURATION_SECONDS: Int = 60
+        const val MAX_TIMED_DURATION_SECONDS: Int = 7_200
+
         fun buildAckBody(label: String, windowSeconds: Int): String = "$label ${windowSeconds}s 1"
     }
 }

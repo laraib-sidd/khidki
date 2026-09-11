@@ -167,4 +167,8 @@ private fun historyBadgeColors(type: HistoryEventType): Pair<androidx.compose.ui
             StatusAmber to StatusAmberBg
         HistoryEventType.SESSION_TERMINAL, HistoryEventType.CONFIG_CHANGED ->
             SlateSecondaryLight to androidx.compose.ui.graphics.Color(0xFFE2E8F0)
+        HistoryEventType.TIMED_ARMED ->
+            StatusGreen to StatusGreenBg
+        HistoryEventType.TIMED_CANCELLED, HistoryEventType.TIMED_EXPIRED ->
+            StatusAmber to StatusAmberBg
     }

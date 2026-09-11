@@ -6,6 +6,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 CHANNEL="${KHIDKI_RELEASE_CHANNEL:-preview}"
+RELEASE_TAG="${KHIDKI_RELEASE_TAG:-preview}"
 VERSION_NAME="${KHIDKI_VERSION_NAME:-unknown}"
 VERSION_CODE="${KHIDKI_VERSION_CODE:-0}"
 GIT_SHA="${GITHUB_SHA:-$(git rev-parse HEAD)}"
@@ -23,6 +24,7 @@ cat <<EOF
 | Field | Value |
 |---|---|
 | Version | \`${VERSION_NAME}-debug\` (code **${VERSION_CODE}**) |
+| Release tag | \`${RELEASE_TAG}\` |
 | Commit | [\`${SHORT_SHA}\`](${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY}/commit/${GIT_SHA}) |
 | Built | ${BUILD_TIME} |
 | Workflow | [run #${GITHUB_RUN_NUMBER:-0}](${RUN_URL}) |
@@ -40,8 +42,9 @@ sha256sum -c ${APK_BASENAME}.sha256
 \`\`\`
 
 ### Channels
-- **\`preview\`** (this release): rolling sideload channel — always install this for device testing.
-- **\`v*\` tags**: immutable milestone snapshots.
+- **\`build/b<N>\`** (this release): immutable per-push build — use for audit trail and pinning.
+- **\`preview\`**: rolling pointer to the latest \`build/b<N>\` — stable URL for device testing.
+- **\`v*\` tags**: manual milestone snapshots (push a git tag).
 
 > Personal APK. Not on Play Store. No INTERNET permission.
 EOF

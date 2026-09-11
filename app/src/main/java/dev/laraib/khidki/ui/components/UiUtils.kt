@@ -81,6 +81,9 @@ object UiUtils {
             HistoryEventType.CONFIG_CHANGED -> "Configuration changed"
             HistoryEventType.BUDGET_REJECTED -> "Budget limit reached"
             HistoryEventType.DUPLICATE_REJECTED -> "Duplicate blocked"
+            HistoryEventType.TIMED_ARMED -> "Timed window opened"
+            HistoryEventType.TIMED_CANCELLED -> "Timed window cancelled"
+            HistoryEventType.TIMED_EXPIRED -> "Timed window expired"
         }
 
     fun historyEventSummary(event: HistoryEvent): String {

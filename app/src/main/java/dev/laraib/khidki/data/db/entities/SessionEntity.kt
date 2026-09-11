@@ -36,4 +36,6 @@ data class SessionEntity(
     val submittedAtMillis: Long?,
     val bootId: String,
     val credentialId: String? = null,
+    val origin: String = "REQUEST",
+    val forwardCount: Int = 0,
 )
