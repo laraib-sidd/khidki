@@ -107,3 +107,94 @@ bash scripts/audit_manifest.sh   # after assembleDebug if needed
 - **History Tab**: Grouped cards with formatted timestamps (e.g. "Today 10:45 AM"), event icons, and human-readable event descriptions instead of raw enum names and epoch milliseconds.
 - **Settings Tab**: Grouped preference cards (Device & Sideload Status, Battery/Realme Guide, Security Policy, About & Diagnostics, plus a Live Regex Tester scratchpad).
 
+---
+
+## 6. Model Roles & Open PR Audit (2026-09-11 12:45 IST)
+
+### Role Boundary Enforcement:
+- **Planner (Gemini)**: Responsible strictly for architecture, UX wireframes/specifications, security invariance audits, test definitions, creating PR packages, and reviewing work. **Must not jump ahead to write production code before delivering the approved plan and handoff package.**
+- **Worker (Composer)**: Responsible for code implementation, refactoring, running `./gradlew`, and ensuring tests pass according to the plan specifications.
+
+### Open PR Audit (Why are there unmerged PRs?):
+- An audit of `gh pr list --repo laraib-sidd/khidki --state all` clarifies the repository state:
+  - **All 5 engineering feature PRs (#1, #7, #8, #9, #10) ARE MERGED into `main`**.
+  - The **5 open PRs (#2, #3, #4, #5, #6)** are automated **Dependabot** PRs, not unfinished feature work. They were triggered when PR #1 added `.github/dependabot.yml` for GitHub Actions version bumps:
+    - PR #2: `android-actions/setup-android` from 3 to 4
+    - PR #3: `actions/cache` from 4 to 6
+    - PR #4: `softprops/action-gh-release` from 2 to 3
+    - PR #5: `actions/checkout` from 4 to 7
+    - PR #6: `actions/setup-java` from 4 to 5
+  - **Resolution**: These are routine bot dependency bumps. They do not block development and can be batch-reviewed/merged after Phase 6.
+
+### Next Execution Protocol:
+- Planner completes the formal spec `docs/plans/2026-09-11-phase6-ui-ux-revamp.md`.
+- Planner hands off the exact prompt package to the Worker (Composer) for implementation.
+
+---
+
+## 7. Dependabot Removal & Model Handoff for Phase 6 (2026-09-11 12:48 IST)
+
+### Actions Completed:
+1. **Dependabot Purged**:
+   - Closed all 5 open automated Dependabot PRs (#2, #3, #4, #5, #6).
+   - Stale remote tracking branches pruned.
+   - Deleted `.github/dependabot.yml` so no further automated bot PRs will be created.
+   - Confirmed `gh pr list --state open` is now completely empty.
+2. **Phase 6 Plan Formulated & Committed**:
+   - Plan document: `docs/plans/2026-09-11-phase6-ui-ux-revamp.md`.
+   - Active branch: `feat/revamp-workable-ui-ux`.
+   - Core design tokens: Material 3 color palette, 16dp rounded cards, status chips (READY, PAUSED, BLOCKED).
+
+### Handoff Package for Incoming Model:
+- **Your Role**: Worker (Implementation).
+- **Task**: Execute the Phase 6 UI/UX revamp on branch `feat/revamp-workable-ui-ux` according to `docs/plans/2026-09-11-phase6-ui-ux-revamp.md`.
+- **Primary Deliverables**:
+  1. `app/src/main/java/dev/laraib/khidki/ui/theme/Theme.kt`: Complete Material 3 color scheme and typography.
+  2. `app/src/main/java/dev/laraib/khidki/ui/components/`:
+     - `UiUtils.kt`: Phone masking (`+91 •••• ••21`), relative timestamp formatting, clipboard helper.
+     - `PermissionPreflightCard.kt`: Sideload restricted permission guidance.
+     - `CommandRevealDialog.kt`: AlertDialog with monospace code and one-tap copy button.
+     - `ConfirmDeleteDialog.kt`: Modal confirmation before deleting forwarding rules.
+  3. `app/src/main/java/dev/laraib/khidki/ui/screens/`:
+     - `StatusScreen.kt`: Hero card with state badge, active window countdown + progress indicator, destructive cancel button, 50-event monospace activity feed with color-coded chips (`[IN]`, `[CMD]`, `[FWD]`, `[DROP]`).
+     - `ConfigsScreen.kt`: Forwarding rules list with count, FAB opening `ModalBottomSheet` with preset filter chips (Banks, OTP) and live RE2 regex validation checkmarks.
+     - `HistoryScreen.kt`: Formatted relative timestamps, human-readable status badges (SESSION_ARMED, AUTH_FAILURE, etc.), and clear history confirmation.
+     - `SettingsScreen.kt`: Device health card, locked security policy card, and interactive Regex Tester scratchpad.
+  4. `app/src/main/java/dev/laraib/khidki/ui/MainActivity.kt`: Clean scaffold routing to the modular screens.
+- **Verification Gates**:
+  - `./gradlew :app:testDebugUnitTest --quiet` (all 62 tests must pass).
+  - `bash scripts/audit_manifest.sh` (zero Internet permission must pass).
+- **Protocol**:
+  - Append completion log to `docs/MODEL_MEMORY.md` (append-only, no edits).
+  - Open PR via `gh pr create` against `main`.
+
+---
+
+## 8. Phase 6 UI/UX Revamp — Worker Completion Log (2026-09-11 13:05 IST)
+
+### Implemented by: Composer (Worker)
+### Branch: `feat/revamp-workable-ui-ux`
+
+### Deliverables shipped:
+1. **Design system**: `ui/theme/Theme.kt` — Material 3 teal palette, status colors, rounded shapes.
+2. **Shared components** (`ui/components/`):
+   - `UiUtils.kt` — phone masking, relative timestamps, diagnostic chip parsing, history labels.
+   - `PermissionPreflightCard.kt` — sideload restricted permission guidance card.
+   - `CommandRevealDialog.kt` — AlertDialog with monospace command + copy button.
+   - `ConfirmDeleteDialog.kt` — delete rule confirmation.
+3. **Modular screens** (`ui/screens/`):
+   - `StatusScreen.kt` — hero status card with READY/PAUSED/BLOCKED badges, active window countdown + LinearProgressIndicator, cancel button, scrollable diagnostic stream with color-coded chips.
+   - `ConfigsScreen.kt` — rules list with count, FAB, ModalBottomSheet form with preset chips and live RE2 validation, delete confirmation.
+   - `HistoryScreen.kt` — formatted relative timestamps, human-readable event badges, clear history confirmation.
+   - `SettingsScreen.kt` — device health card, security invariants, live regex tester scratchpad, about card.
+4. **MainActivity.kt** — thin scaffold router; command reveal via AlertDialog overlay.
+
+### Verification:
+- `./gradlew :app:testDebugUnitTest --quiet` — **62/62 PASS**
+- `bash scripts/audit_manifest.sh` — **PASS** (zero INTERNET)
+
+### Pending:
+- PR opened against `main` for owner review and physical GT 6T re-test.
+
+
+
