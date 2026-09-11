@@ -43,9 +43,9 @@ import dev.laraib.khidki.ui.theme.StatusRedBg
 fun HistoryScreen(
     state: KhidkiUiState,
     viewModel: KhidkiViewModel,
-    hasSmsPermission: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val hasSmsPermission = state.hasSmsPermission
     var showClearConfirm by remember { mutableStateOf(false) }
 
     Column(

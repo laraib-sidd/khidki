@@ -6,16 +6,16 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -54,11 +54,11 @@ fun TimedForwardingCard(
     activeSession: AuthorizationSession?,
     masterEnabled: Boolean,
     hasSmsPermission: Boolean,
-    activity: FragmentActivity?,
+    hostActivity: FragmentActivity,
     onArm: (ConfigurationId, Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val enabledConfigs = remember(configurations) { configurations.filter { it.enabled } }
+    val enabledConfigs = remember(configurations) { configurations.filter { it.isEnabled } }
     var selectedConfigId by remember(enabledConfigs) {
         mutableStateOf(enabledConfigs.firstOrNull()?.id)
     }
@@ -69,14 +69,13 @@ fun TimedForwardingCard(
         activeSession?.origin == SessionOrigin.TIMED && activeSession.isActive
     val anotherSessionActive =
         activeSession != null && activeSession.isActive && activeSession.origin != SessionOrigin.TIMED
+    val canConfigure =
+        enabledConfigs.isNotEmpty() && !timedSessionActive && !anotherSessionActive
     val canArm =
-        enabledConfigs.isNotEmpty() &&
+        canConfigure &&
             masterEnabled &&
             hasSmsPermission &&
-            !timedSessionActive &&
-            !anotherSessionActive &&
-            activity != null &&
-            DeviceCredentialGate.canAuthenticate(activity)
+            DeviceCredentialGate.hasDeviceCredential(hostActivity)
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -125,6 +124,7 @@ fun TimedForwardingCard(
                             value = selectedConfig.label,
                             onValueChange = {},
                             readOnly = true,
+                            enabled = canConfigure,
                             label = { Text(stringResource(R.string.timed_forwarding_config_label)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = configMenuExpanded) },
                             modifier =
@@ -156,25 +156,20 @@ fun TimedForwardingCard(
                     )
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         durationPresets.forEach { preset ->
-                            AssistChip(
+                            FilterChip(
+                                selected = selectedDurationSeconds == preset.seconds,
                                 onClick = { selectedDurationSeconds = preset.seconds },
                                 label = { Text(preset.label) },
-                                enabled = canArm,
+                                enabled = canConfigure,
                             )
                         }
                     }
 
                     val credentialTitle = stringResource(R.string.timed_forwarding_credential_title)
                     val credentialSubtitle = stringResource(R.string.timed_forwarding_credential_subtitle)
-                    RowWithSwitch(
-                        checked = timedSessionActive,
-                        enabled = canArm,
-                        onCheckedChange = { enabled ->
-                            if (!enabled) {
-                                return@RowWithSwitch
-                            }
-                            val configId = selectedConfigId ?: return@RowWithSwitch
-                            val hostActivity = activity ?: return@RowWithSwitch
+                    Button(
+                        onClick = {
+                            val configId = selectedConfigId ?: return@Button
                             DeviceCredentialGate.authenticate(
                                 activity = hostActivity,
                                 title = credentialTitle,
@@ -185,15 +180,25 @@ fun TimedForwardingCard(
                                 onFailure = {},
                             )
                         },
-                    )
+                        enabled = canArm,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.timed_forwarding_arm_button))
+                    }
 
-                    if (!masterEnabled) {
+                    if (!hasSmsPermission) {
+                        Text(
+                            text = stringResource(R.string.timed_forwarding_sms_required),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    } else if (!masterEnabled) {
                         Text(
                             text = stringResource(R.string.timed_forwarding_master_off),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                         )
-                    } else if (activity != null && !DeviceCredentialGate.canAuthenticate(activity)) {
+                    } else if (!DeviceCredentialGate.hasDeviceCredential(hostActivity)) {
                         Text(
                             text = stringResource(R.string.timed_forwarding_no_credential),
                             style = MaterialTheme.typography.bodySmall,
@@ -203,28 +208,5 @@ fun TimedForwardingCard(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun RowWithSwitch(
-    checked: Boolean,
-    enabled: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    androidx.compose.foundation.layout.Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(R.string.timed_forwarding_switch_label),
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            enabled = enabled,
-        )
     }
 }

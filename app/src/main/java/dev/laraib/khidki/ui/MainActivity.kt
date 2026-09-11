@@ -2,10 +2,10 @@ package dev.laraib.khidki.ui
 
 import android.Manifest
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,22 +40,22 @@ import dev.laraib.khidki.ui.screens.SettingsScreen
 import dev.laraib.khidki.ui.screens.StatusScreen
 import dev.laraib.khidki.ui.theme.KhidkiTheme
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     private val viewModel: KhidkiViewModel by viewModels()
 
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { _ ->
-            viewModel.refresh(hasSmsPermission())
+            refreshPermissionState()
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel.refresh(hasSmsPermission())
+        refreshPermissionState()
         setContent {
             KhidkiTheme {
                 KhidkiAppScreen(
                     viewModel = viewModel,
-                    hasSmsPermission = hasSmsPermission(),
+                    hostActivity = this,
                     onOpenAppInfo = { openAppInfo() },
                     onRequestPermissions = { requestSmsPermissions() },
                 )
@@ -65,10 +65,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        viewModel.refresh(hasSmsPermission())
+        refreshPermissionState()
     }
 
-    private fun hasSmsPermission(): Boolean = PermissionGate.hasSmsPermissions(this)
+    private fun refreshPermissionState() {
+        viewModel.refresh(PermissionGate.hasSmsPermissions(this))
+    }
 
     private fun openAppInfo() {
         startActivity(PermissionGate.createAppDetailsIntent(packageName))
@@ -88,7 +90,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun KhidkiAppScreen(
     viewModel: KhidkiViewModel,
-    hasSmsPermission: Boolean,
+    hostActivity: AppCompatActivity,
     onOpenAppInfo: () -> Unit,
     onRequestPermissions: () -> Unit,
 ) {
@@ -134,7 +136,7 @@ private fun KhidkiAppScreen(
                 .fillMaxSize()
                 .padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
-            if (!hasSmsPermission) {
+            if (!state.hasSmsPermission) {
                 PermissionPreflightCard(
                     steps = PermissionGate.sideloadSetupSteps(),
                     onOpenAppInfo = onOpenAppInfo,
@@ -147,23 +149,20 @@ private fun KhidkiAppScreen(
                     0 -> StatusScreen(
                         state = state,
                         viewModel = viewModel,
-                        hasSmsPermission = hasSmsPermission,
+                        hostActivity = hostActivity,
                         diagnosticEvents = diagnosticEvents,
                     )
                     1 -> ConfigsScreen(
                         state = state,
                         viewModel = viewModel,
-                        hasSmsPermission = hasSmsPermission,
                         onCommandRevealed = { revealedCommand = it },
                     )
                     2 -> HistoryScreen(
                         state = state,
                         viewModel = viewModel,
-                        hasSmsPermission = hasSmsPermission,
                     )
                     3 -> SettingsScreen(
                         state = state,
-                        hasSmsPermission = hasSmsPermission,
                         onOpenAppInfo = onOpenAppInfo,
                     )
                 }

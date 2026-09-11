@@ -35,7 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.fragment.app.FragmentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import dev.laraib.khidki.domain.model.AuthorizationSession
@@ -62,12 +62,11 @@ import kotlin.math.max
 fun StatusScreen(
     state: KhidkiUiState,
     viewModel: KhidkiViewModel,
-    hasSmsPermission: Boolean,
+    hostActivity: AppCompatActivity,
     diagnosticEvents: List<String>,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val fragmentActivity = context as? FragmentActivity
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -76,27 +75,25 @@ fun StatusScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         HeroStatusCard(
-            appStateLabel = state.appStateLabel,
-            masterEnabled = state.masterEnabled,
-            hasSmsPermission = hasSmsPermission,
-            onMasterToggle = { viewModel.setMasterEnabled(it, hasSmsPermission) },
+            state = state,
+            onMasterToggle = { viewModel.setMasterEnabled(it, state.hasSmsPermission) },
         )
 
         TimedForwardingCard(
             configurations = state.configurations,
             activeSession = state.activeSession,
             masterEnabled = state.masterEnabled,
-            hasSmsPermission = hasSmsPermission,
-            activity = fragmentActivity,
+            hasSmsPermission = state.hasSmsPermission,
+            hostActivity = hostActivity,
             onArm = { configId, durationSeconds ->
-                viewModel.armTimedWindow(configId, durationSeconds, hasSmsPermission)
+                viewModel.armTimedWindow(configId, durationSeconds, state.hasSmsPermission)
             },
         )
 
         state.activeSession?.let { session ->
             ActiveWindowCard(
                 session = session,
-                onCancel = { viewModel.cancelActiveSession(hasSmsPermission) },
+                onCancel = { viewModel.cancelActiveSession(state.hasSmsPermission) },
             )
         } ?: EmptySessionCard()
 
@@ -122,14 +119,12 @@ fun StatusScreen(
 
 @Composable
 private fun HeroStatusCard(
-    appStateLabel: String,
-    masterEnabled: Boolean,
-    hasSmsPermission: Boolean,
+    state: KhidkiUiState,
     onMasterToggle: (Boolean) -> Unit,
 ) {
-    val (statusTitle, statusSubtitle, statusColor, statusBg, icon) = remember(appStateLabel, hasSmsPermission) {
+    val (statusTitle, statusSubtitle, statusColor, statusBg, icon) = remember(state.appStateLabel, state.hasSmsPermission) {
         when {
-            !hasSmsPermission || appStateLabel == "BLOCKED_PERMISSION" ->
+            !state.hasSmsPermission ->
                 StatusVisual(
                     "SMS permission needed",
                     "Grant restricted SMS access to arm the engine",
@@ -137,7 +132,7 @@ private fun HeroStatusCard(
                     StatusRedBg,
                     Icons.Default.Warning,
                 )
-            appStateLabel == "PAUSED" ->
+            state.appStateLabel == "PAUSED" ->
                 StatusVisual(
                     "Engine paused",
                     "Inbound SMS will not be evaluated",
@@ -193,9 +188,9 @@ private fun HeroStatusCard(
                     )
                 }
                 Switch(
-                    checked = masterEnabled,
+                    checked = state.masterEnabled,
                     onCheckedChange = onMasterToggle,
-                    enabled = hasSmsPermission,
+                    enabled = state.hasSmsPermission,
                 )
             }
         }

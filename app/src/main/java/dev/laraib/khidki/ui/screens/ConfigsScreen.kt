@@ -79,10 +79,10 @@ private val contentPresets = listOf(
 fun ConfigsScreen(
     state: KhidkiUiState,
     viewModel: KhidkiViewModel,
-    hasSmsPermission: Boolean,
     onCommandRevealed: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val hasSmsPermission = state.hasSmsPermission
     var showAddSheet by remember { mutableStateOf(false) }
     var editingConfig by remember { mutableStateOf<Configuration?>(null) }
     var pendingDelete by remember { mutableStateOf<Configuration?>(null) }
@@ -286,8 +286,7 @@ private fun EditRuleBottomSheet(
             requester.isNotBlank() &&
             phoneValid &&
             patternError == null &&
-            windowValid &&
-            hasSmsPermission
+            windowValid
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -413,8 +412,7 @@ private fun AddRuleBottomSheet(
         label.isNotBlank() &&
         requester.isNotBlank() &&
         phoneValid &&
-        patternError == null &&
-        hasSmsPermission
+        patternError == null
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,

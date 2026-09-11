@@ -9,6 +9,8 @@
     <string name="timed_forwarding_config_label">Forwarding rule</string>
     <string name="timed_forwarding_duration_label">Duration</string>
     <string name="timed_forwarding_switch_label">Enable timed forwarding</string>
+    <string name="timed_forwarding_arm_button">Arm timed forwarding</string>
+    <string name="timed_forwarding_sms_required">Grant SMS permissions before arming.</string>
     <string name="timed_forwarding_credential_title">Confirm timed forwarding</string>
     <string name="timed_forwarding_credential_subtitle">Use your device PIN, pattern, or biometrics.</string>
     <string name="timed_forwarding_master_off">Turn on Master forwarding first.</string>
