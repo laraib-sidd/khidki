@@ -41,10 +41,9 @@ cat <<EOF
 sha256sum -c ${APK_BASENAME}.sha256
 \`\`\`
 
-### Channels
-- **\`build/b<N>\`** (this release): immutable per-push build — use for audit trail and pinning.
-- **\`preview\`**: rolling pointer to the latest \`build/b<N>\` — stable URL for device testing.
-- **\`v*\` tags**: manual milestone snapshots (push a git tag).
+### Tags
+- **\`v<version>-b<N>\`** (e.g. \`v1.1.0-b17\`): auto-created on every push to \`main\` after CI passes.
+- **\`v*\` manual tags**: push a git tag for milestone snapshots (e.g. \`v1.2.0\`).
 
 > Personal APK. Not on Play Store. No INTERNET permission.
 EOF
