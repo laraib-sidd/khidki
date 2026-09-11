@@ -20,7 +20,7 @@ All notable changes to Khidki are documented here.
 
 ### Changed
 
-- Release pipeline: each `main` push creates immutable `build/b<N>` tag + release; `preview` rolls forward as alias
+- Release pipeline: single `ci` workflow publishes `v<version>-b<N>` GitHub Release on every `main` push; removed `preview` rolling tag
 - Room DB v2: `sessions.origin` + `sessions.forwardCount` for TIMED session persistence
 - Version `1.1.0` with CI-driven `versionCode` for reliable sideload updates
 - Rolling `preview` release is the install target (`docs/RELEASE.md`)

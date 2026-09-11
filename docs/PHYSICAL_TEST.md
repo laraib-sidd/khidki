@@ -6,9 +6,8 @@ Install the **rolling preview** APK from the private GitHub Release. This is sid
 
 ## Install
 
-1. Download `khidki-1.1.0-debug-b*.apk` from GitHub Releases → **Latest** or **`preview`** (rolling alias).
-2. Record the `build/b<N>` tag in trial notes for reproducibility.
-3. Do **not** use stale `v1.0.0-preview` milestone unless intentionally pinned.
+1. Download `khidki-1.1.0-debug-b*.apk` from GitHub Releases → **Latest**.
+2. Record the release tag (e.g. `v1.1.0-b17`) in trial notes for reproducibility.
 3. See `docs/RELEASE.md` for checksum verification.
 
 ## Before any SMS
