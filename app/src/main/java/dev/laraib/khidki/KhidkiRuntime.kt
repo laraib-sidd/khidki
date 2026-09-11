@@ -2,6 +2,7 @@ package dev.laraib.khidki
 
 import android.content.Context
 import dev.laraib.khidki.data.KhidkiContainer
+import dev.laraib.khidki.data.adapter.DiagnosticAuditStore
 import dev.laraib.khidki.data.adapter.BlockingAuditStore
 import dev.laraib.khidki.data.adapter.BlockingConfigurationRepository
 import dev.laraib.khidki.data.adapter.BlockingSessionRepository
@@ -55,7 +56,7 @@ class KhidkiRuntime private constructor(
                 database = container.database,
                 nowMillis = { clock.nowMillis() },
             )
-            val auditStore = BlockingAuditStore(container.auditStore)
+            val auditStore = DiagnosticAuditStore(BlockingAuditStore(container.auditStore))
             val credentialVerifier = RoomDomainCredentialVerifier(
                 database = container.database,
                 keystore = container.credentialVerifier,
