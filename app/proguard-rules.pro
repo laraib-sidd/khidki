@@ -1,2 +1,4 @@
 -keep class dev.laraib.khidki.data.db.** { *; }
 -keepclassmembers class * extends androidx.room.RoomDatabase { *; }
+-keep class dev.laraib.khidki.domain.model.** { *; }
+-keep class androidx.biometric.** { *; }

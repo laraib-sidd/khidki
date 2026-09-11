@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="khidki_primary">#006A60</color>
+    <color name="khidki_primary_container">#70F7E5</color>
+    <color name="khidki_on_primary">#FFFFFF</color>
+    <color name="khidki_surface">#F4FBF7</color>
+    <color name="ic_launcher_background">#006A60</color>
+</resources>

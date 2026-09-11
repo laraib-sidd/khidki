@@ -1,11 +1,12 @@
 package dev.laraib.khidki.ui
 
 import android.Manifest
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import dev.laraib.khidki.platform.permission.PermissionGate
 import dev.laraib.khidki.ui.components.CommandRevealDialog
 import dev.laraib.khidki.ui.components.PermissionPreflightCard
@@ -40,7 +42,7 @@ import dev.laraib.khidki.ui.screens.SettingsScreen
 import dev.laraib.khidki.ui.screens.StatusScreen
 import dev.laraib.khidki.ui.theme.KhidkiTheme
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : FragmentActivity() {
     private val viewModel: KhidkiViewModel by viewModels()
 
     private val permissionLauncher =
@@ -49,6 +51,7 @@ class MainActivity : AppCompatActivity() {
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         refreshPermissionState()
         setContent {
@@ -57,7 +60,7 @@ class MainActivity : AppCompatActivity() {
                     viewModel = viewModel,
                     hostActivity = this,
                     onOpenAppInfo = { openAppInfo() },
-                    onRequestPermissions = { requestSmsPermissions() },
+                    onRequestPermissions = { requestRuntimePermissions() },
                 )
             }
         }
@@ -76,13 +79,16 @@ class MainActivity : AppCompatActivity() {
         startActivity(PermissionGate.createAppDetailsIntent(packageName))
     }
 
-    private fun requestSmsPermissions() {
-        permissionLauncher.launch(
-            arrayOf(
-                Manifest.permission.RECEIVE_SMS,
-                Manifest.permission.SEND_SMS,
-            ),
-        )
+    private fun requestRuntimePermissions() {
+        val permissions =
+            buildList {
+                add(Manifest.permission.RECEIVE_SMS)
+                add(Manifest.permission.SEND_SMS)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    add(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        permissionLauncher.launch(permissions.toTypedArray())
     }
 }
 
@@ -90,7 +96,7 @@ class MainActivity : AppCompatActivity() {
 @Composable
 private fun KhidkiAppScreen(
     viewModel: KhidkiViewModel,
-    hostActivity: AppCompatActivity,
+    hostActivity: FragmentActivity,
     onOpenAppInfo: () -> Unit,
     onRequestPermissions: () -> Unit,
 ) {
