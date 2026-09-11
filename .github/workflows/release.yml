@@ -106,6 +106,13 @@ jobs:
           bash scripts/generate_release_notes.sh > "$NOTES_FILE"
           echo "file=$NOTES_FILE" >> "$GITHUB_OUTPUT"
 
+      - name: Prune legacy generic APK assets
+        if: env.KHIDKI_RELEASE_CHANNEL == 'preview'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete-asset preview app-debug.apk -R "${{ github.repository }}" -y || true
+
       - name: Publish rolling preview release
         if: env.KHIDKI_RELEASE_CHANNEL == 'preview'
         uses: softprops/action-gh-release@v2
