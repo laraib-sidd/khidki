@@ -268,7 +268,39 @@ bash scripts/audit_manifest.sh   # after assembleDebug if needed
 
 ### Next action (owner decision)
 
-- Approve **Phase 7 manual arm** spec → worker implements → re-test P3 with Blinkit OTP.
+- ~~Approve **Phase 7 manual arm** spec~~ — **APPROVED 2026-09-11 16:15 IST** as timed window (see §12).
+
+---
+
+## 12. Phase 7 Handover — Timed Forwarding Window (2026-09-11 16:15 IST)
+
+### From: Planner → To: Worker. Author: (Laraib).
+
+### Context that decided it
+- Brother is RCS-only and disabling RCS doesn't stick → SMS `req` can never arrive.
+- Evaluated: RCS/WhatsApp/Telegram via `NotificationListenerService` (all identical cost:
+  fuzzy sender identity, miss-when-open, breaks the locked notification-listener exclusion —
+  rejected); Telegram Bot API (strong identity but requires `INTERNET` — kills the founding
+  invariant — rejected); missed-call arm and Quick Settings tile (kept as future options, not now).
+- Owner chose: **timed switch** — enable with a duration, matching SMS forwards until expiry.
+
+### Locked (do not reopen)
+1. Max **2h** (7_200 s), enforced engine-side. Presets 15/30/60/120m.
+2. **Multi-forward**, window stays `ARMED`, `forwardCount` increments, each forward logged.
+3. **One config at a time** (dropdown, default first enabled); destination = armed config's requester.
+4. **Device-credential gate** to enable. No ack SMS. `req` during timed window → `IgnoredActiveSession`.
+5. Reboot drops window via existing `bootId` path. Budget enforced per forward (20 parts/24h).
+6. Configs become **editable** (label/regex/window in place; number change voids credentials → regenerate).
+7. Scope: no `INTERNET`, no notification-listener, no RCS, no new background service.
+
+### Worker entry
+- Plan: `docs/plans/2026-09-11-timed-forwarding.md` — execute Tasks 0–7 in order, TDD, atomic commits.
+- Branch: `feat/timed-forwarding-window` from `main`. PR vs `main`, CI green, then handoff.
+- Verified pre-read facts: no `updateConfiguration` exists in `ui/` (Task 5 builds it);
+  `AuthorizationSession` is single-forward today (`SUBMITTED` terminal, `forwarded: Boolean`);
+  no `KhidkiViewModelTest` exists — Task 0.3 decides JVM-testability before writing one.
+- Gates: `./gradlew :app:testDebugUnitTest --quiet` + `bash scripts/audit_manifest.sh`.
+- Append completion log here (append-only); update `docs/COORDINATION.md` §4/§6 when done.
 
 
 
