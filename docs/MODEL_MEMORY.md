@@ -107,3 +107,27 @@ bash scripts/audit_manifest.sh   # after assembleDebug if needed
 - **History Tab**: Grouped cards with formatted timestamps (e.g. "Today 10:45 AM"), event icons, and human-readable event descriptions instead of raw enum names and epoch milliseconds.
 - **Settings Tab**: Grouped preference cards (Device & Sideload Status, Battery/Realme Guide, Security Policy, About & Diagnostics, plus a Live Regex Tester scratchpad).
 
+---
+
+## 6. Model Roles & Open PR Audit (2026-09-11 12:45 IST)
+
+### Role Boundary Enforcement:
+- **Planner (Gemini)**: Responsible strictly for architecture, UX wireframes/specifications, security invariance audits, test definitions, creating PR packages, and reviewing work. **Must not jump ahead to write production code before delivering the approved plan and handoff package.**
+- **Worker (Composer)**: Responsible for code implementation, refactoring, running `./gradlew`, and ensuring tests pass according to the plan specifications.
+
+### Open PR Audit (Why are there unmerged PRs?):
+- An audit of `gh pr list --repo laraib-sidd/khidki --state all` clarifies the repository state:
+  - **All 5 engineering feature PRs (#1, #7, #8, #9, #10) ARE MERGED into `main`**.
+  - The **5 open PRs (#2, #3, #4, #5, #6)** are automated **Dependabot** PRs, not unfinished feature work. They were triggered when PR #1 added `.github/dependabot.yml` for GitHub Actions version bumps:
+    - PR #2: `android-actions/setup-android` from 3 to 4
+    - PR #3: `actions/cache` from 4 to 6
+    - PR #4: `softprops/action-gh-release` from 2 to 3
+    - PR #5: `actions/checkout` from 4 to 7
+    - PR #6: `actions/setup-java` from 4 to 5
+  - **Resolution**: These are routine bot dependency bumps. They do not block development and can be batch-reviewed/merged after Phase 6.
+
+### Next Execution Protocol:
+- Planner completes the formal spec `docs/plans/2026-09-11-phase6-ui-ux-revamp.md`.
+- Planner hands off the exact prompt package to the Worker (Composer) for implementation.
+
+
