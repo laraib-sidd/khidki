@@ -11,6 +11,7 @@
 *.keystore
 !app/debug-keystore/
 !app/debug-keystore/debug.keystore
+/app/release-keystore/
 google-services.json
 .env
 /release-artifacts/

@@ -56,6 +56,7 @@ fun TimedForwardingCard(
     hasSmsPermission: Boolean,
     hostActivity: FragmentActivity,
     onArm: (ConfigurationId, Int) -> Unit,
+    onAuthCancelled: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val enabledConfigs = remember(configurations) { configurations.filter { it.isEnabled } }
@@ -177,7 +178,7 @@ fun TimedForwardingCard(
                                 onSuccess = {
                                     onArm(configId, selectedDurationSeconds)
                                 },
-                                onFailure = {},
+                                onFailure = onAuthCancelled,
                             )
                         },
                         enabled = canArm,

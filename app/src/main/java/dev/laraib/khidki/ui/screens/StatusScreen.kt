@@ -1,6 +1,5 @@
 package dev.laraib.khidki.ui.screens
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -26,35 +25,30 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.fragment.app.FragmentActivity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
+import dev.laraib.khidki.R
 import dev.laraib.khidki.domain.model.AuthorizationSession
 import dev.laraib.khidki.domain.model.SessionOrigin
 import dev.laraib.khidki.ui.KhidkiUiState
 import dev.laraib.khidki.ui.KhidkiViewModel
-import dev.laraib.khidki.ui.components.DiagnosticChipType
 import dev.laraib.khidki.ui.components.TimedForwardingCard
 import dev.laraib.khidki.ui.components.UiUtils
-import dev.laraib.khidki.ui.theme.StatusAmber
-import dev.laraib.khidki.ui.theme.StatusAmberBg
-import dev.laraib.khidki.ui.theme.StatusBlue
-import dev.laraib.khidki.ui.theme.StatusBlueBg
-import dev.laraib.khidki.ui.theme.StatusGreen
-import dev.laraib.khidki.ui.theme.StatusGreenBg
-import dev.laraib.khidki.ui.theme.StatusRed
-import dev.laraib.khidki.ui.theme.StatusRedBg
-import dev.laraib.khidki.ui.theme.TealPrimaryLight
-import dev.laraib.khidki.ui.theme.TealContainerLight
+import dev.laraib.khidki.ui.theme.StatusTone
+import dev.laraib.khidki.ui.theme.statusToneColors
 import kotlinx.coroutines.delay
 import kotlin.math.max
 
@@ -64,9 +58,9 @@ fun StatusScreen(
     viewModel: KhidkiViewModel,
     hostActivity: FragmentActivity,
     diagnosticEvents: List<String>,
+    onAuthCancelled: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    val context = LocalContext.current
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -88,6 +82,7 @@ fun StatusScreen(
             onArm = { configId, durationSeconds ->
                 viewModel.armTimedWindow(configId, durationSeconds, state.hasSmsPermission)
             },
+            onAuthCancelled = onAuthCancelled,
         )
 
         state.activeSession?.let { session ->
@@ -97,21 +92,14 @@ fun StatusScreen(
             )
         } ?: EmptySessionCard()
 
-        state.errorMessage?.let { message ->
-            Text(
-                text = message,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
-
+        val context = LocalContext.current
         ActivityFeedCard(
             events = diagnosticEvents,
+            advancedUnlocked = state.advancedUnlocked,
             onClear = { viewModel.clearDiagnosticEvents() },
             onCopyAll = {
                 val payload = diagnosticEvents.joinToString(separator = "\n")
-                UiUtils.copyToClipboard(context, "khidki-logs", payload)
-                Toast.makeText(context, "Logs copied", Toast.LENGTH_SHORT).show()
+                UiUtils.copyToClipboard(context, "khidki-activity", payload)
             },
         )
     }
@@ -122,57 +110,64 @@ private fun HeroStatusCard(
     state: KhidkiUiState,
     onMasterToggle: (Boolean) -> Unit,
 ) {
-    val (statusTitle, statusSubtitle, statusColor, statusBg, icon) = remember(state.appStateLabel, state.hasSmsPermission) {
+    val hasActiveSession = state.activeSession?.isActive == true
+    val visual = remember(state.hasSmsPermission, state.masterEnabled, hasActiveSession) {
         when {
             !state.hasSmsPermission ->
                 StatusVisual(
-                    "SMS permission needed",
-                    "Grant restricted SMS access to arm the engine",
-                    StatusRed,
-                    StatusRedBg,
-                    Icons.Default.Warning,
+                    titleRes = R.string.setup_needed,
+                    subtitleRes = R.string.setup_needed_subtitle,
+                    tone = StatusTone.Error,
+                    icon = Icons.Default.Warning,
                 )
-            state.appStateLabel == "PAUSED" ->
+            !state.masterEnabled ->
                 StatusVisual(
-                    "Engine paused",
-                    "Inbound SMS will not be evaluated",
-                    StatusAmber,
-                    StatusAmberBg,
-                    Icons.Default.PauseCircle,
+                    titleRes = R.string.forwarding_off,
+                    subtitleRes = R.string.forwarding_off_subtitle,
+                    tone = StatusTone.Warning,
+                    icon = Icons.Default.PauseCircle,
+                )
+            hasActiveSession ->
+                StatusVisual(
+                    titleRes = R.string.forwarding_on,
+                    subtitleRes = R.string.window_active_subtitle,
+                    tone = StatusTone.Success,
+                    icon = Icons.Default.CheckCircle,
                 )
             else ->
                 StatusVisual(
-                    "Engine active",
-                    "Ready to evaluate inbound SMS",
-                    StatusGreen,
-                    StatusGreenBg,
-                    Icons.Default.CheckCircle,
+                    titleRes = R.string.forwarding_on,
+                    subtitleRes = R.string.waiting_for_window,
+                    tone = StatusTone.Success,
+                    icon = Icons.Default.CheckCircle,
                 )
         }
     }
+    val (accent, background) = statusToneColors(visual.tone)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = statusBg),
+        colors = CardDefaults.cardColors(containerColor = background),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(icon, contentDescription = null, tint = statusColor)
-                    Column {
-                        Text(statusTitle, style = MaterialTheme.typography.titleMedium, color = statusColor)
-                        Text(statusSubtitle, style = MaterialTheme.typography.bodySmall)
-                    }
+                Icon(visual.icon, contentDescription = null, tint = accent)
+                Column {
+                    Text(
+                        text = stringResource(visual.titleRes),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = accent,
+                    )
+                    Text(
+                        text = stringResource(visual.subtitleRes),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
                 }
             }
             Row(
@@ -181,9 +176,12 @@ private fun HeroStatusCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Master forwarding engine", style = MaterialTheme.typography.titleSmall)
                     Text(
-                        "Toggle all inbound SMS evaluation and forwarding",
+                        text = stringResource(R.string.forwarding_switch_label),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        text = stringResource(R.string.forwarding_switch_hint),
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
@@ -198,10 +196,9 @@ private fun HeroStatusCard(
 }
 
 private data class StatusVisual(
-    val title: String,
-    val subtitle: String,
-    val color: androidx.compose.ui.graphics.Color,
-    val background: androidx.compose.ui.graphics.Color,
+    val titleRes: Int,
+    val subtitleRes: Int,
+    val tone: StatusTone,
     val icon: androidx.compose.ui.graphics.vector.ImageVector,
 )
 
@@ -225,27 +222,26 @@ private fun ActiveWindowCard(
     val progress = remainingMillis.toFloat() / totalMillis.toFloat()
     val minutes = (remainingMillis / 1_000L) / 60L
     val seconds = (remainingMillis / 1_000L) % 60L
+    val (accent, background) = statusToneColors(StatusTone.Accent)
+
+    val title =
+        if (session.origin == SessionOrigin.TIMED) {
+            stringResource(R.string.timed_window_title, session.label)
+        } else {
+            stringResource(R.string.sms_window_title, session.label)
+        }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, TealPrimaryLight, RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(containerColor = TealContainerLight.copy(alpha = 0.25f)),
+            .border(1.dp, accent, RoundedCornerShape(16.dp)),
+        colors = CardDefaults.cardColors(containerColor = background),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            val windowTitle =
-                if (session.origin == SessionOrigin.TIMED) {
-                    "Timed forwarding: ${session.label}"
-                } else {
-                    "Active forwarding window: ${session.label}"
-                }
-            Text(
-                text = windowTitle,
-                style = MaterialTheme.typography.titleMedium,
-            )
+            Text(text = title, style = MaterialTheme.typography.titleMedium)
             Text(
                 text = UiUtils.maskPhoneNumber(session.requester.e164),
                 style = MaterialTheme.typography.bodyMedium,
@@ -255,25 +251,21 @@ private fun ActiveWindowCard(
                 modifier = Modifier.fillMaxWidth(),
             )
             Text(
-                text = "%02d:%02d remaining".format(minutes, seconds),
-                style = MaterialTheme.typography.bodyMedium,
+                text = stringResource(R.string.time_remaining, minutes, seconds),
+                style = MaterialTheme.typography.headlineSmall,
             )
             if (session.origin == SessionOrigin.TIMED) {
                 Text(
-                    text = "${session.forwardCount} message(s) forwarded",
+                    text = stringResource(R.string.messages_forwarded, session.forwardCount),
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            Text(
-                text = "${session.windowSeconds}s window",
-                style = MaterialTheme.typography.bodySmall,
-            )
             Button(
                 onClick = onCancel,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Cancel active window")
+                Text(stringResource(R.string.cancel_active_window))
             }
         }
     }
@@ -286,7 +278,7 @@ private fun EmptySessionCard() {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Text(
-            text = "No active window. Arm timed forwarding above, or send a `req <password>` SMS.",
+            text = stringResource(R.string.no_active_window),
             modifier = Modifier.padding(16.dp),
             style = MaterialTheme.typography.bodyMedium,
         )
@@ -296,81 +288,65 @@ private fun EmptySessionCard() {
 @Composable
 private fun ActivityFeedCard(
     events: List<String>,
+    advancedUnlocked: Boolean,
     onClear: () -> Unit,
     onCopyAll: () -> Unit,
 ) {
+    var showTechnical by remember { mutableStateOf(false) }
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "Live diagnostic stream (${events.size})",
-                    style = MaterialTheme.typography.titleSmall,
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onCopyAll, enabled = events.isNotEmpty()) {
-                    Text("Copy all logs")
-                }
-                OutlinedButton(onClick = onClear, enabled = events.isNotEmpty()) {
-                    Text("Clear log")
-                }
-            }
+            Text(
+                text = stringResource(R.string.recent_activity_title),
+                style = MaterialTheme.typography.titleSmall,
+            )
             if (events.isEmpty()) {
                 Text(
-                    text = "No events yet. Send a test SMS to see activity.",
+                    text = stringResource(R.string.recent_activity_empty),
                     style = MaterialTheme.typography.bodySmall,
                 )
             } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    events.asReversed().forEach { raw ->
-                        DiagnosticEventRow(raw)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    events.asReversed().take(10).forEach { raw ->
+                        Text(
+                            text = UiUtils.humanizeDiagnosticEvent(raw),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+                if (advancedUnlocked) {
+                    TextButton(onClick = { showTechnical = !showTechnical }) {
+                        Text(
+                            if (showTechnical) {
+                                stringResource(R.string.hide_technical_details)
+                            } else {
+                                stringResource(R.string.show_technical_details)
+                            },
+                        )
+                    }
+                    if (showTechnical) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            events.asReversed().forEach { raw ->
+                                Text(
+                                    text = raw,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontFamily = FontFamily.Monospace,
+                                )
+                            }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = onCopyAll, enabled = events.isNotEmpty()) {
+                                Text(stringResource(R.string.copy_activity_log))
+                            }
+                            OutlinedButton(onClick = onClear, enabled = events.isNotEmpty()) {
+                                Text(stringResource(R.string.clear_activity))
+                            }
+                        }
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun DiagnosticEventRow(raw: String) {
-    val chip = UiUtils.parseDiagnosticEvent(raw)
-    val (chipColor, chipBg) = when (chip.type) {
-        DiagnosticChipType.IN -> StatusBlue to StatusBlueBg
-        DiagnosticChipType.CMD -> StatusGreen to StatusGreenBg
-        DiagnosticChipType.FWD -> TealPrimaryLight to TealContainerLight.copy(alpha = 0.35f)
-        DiagnosticChipType.DROP -> StatusAmber to StatusAmberBg
-        DiagnosticChipType.LOG -> StatusBlue to StatusBlueBg
-    }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Text(
-            text = "[${chip.type.name}]",
-            modifier = Modifier
-                .background(chipBg, RoundedCornerShape(6.dp))
-                .padding(horizontal = 6.dp, vertical = 2.dp),
-            style = MaterialTheme.typography.labelSmall.copy(color = chipColor),
-            fontFamily = FontFamily.Monospace,
-        )
-        Text(
-            text = chip.message,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodySmall,
-            fontFamily = FontFamily.Monospace,
-        )
     }
 }

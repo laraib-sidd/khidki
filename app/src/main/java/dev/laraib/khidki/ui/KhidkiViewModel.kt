@@ -19,6 +19,7 @@ import dev.laraib.khidki.domain.model.TimedArmRejectReason
 import dev.laraib.khidki.domain.model.TimedArmResult
 import dev.laraib.khidki.domain.phone.PhoneNormalizer
 import dev.laraib.khidki.platform.diagnostics.DiagnosticEventBus
+import dev.laraib.khidki.platform.permission.PermissionGate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,12 +31,14 @@ import java.util.UUID
 data class KhidkiUiState(
     val masterEnabled: Boolean = false,
     val hasSmsPermission: Boolean = false,
+    val hasNotificationPermission: Boolean = true,
     val appStateLabel: String = "—",
     val activeSession: AuthorizationSession? = null,
     val configurations: List<Configuration> = emptyList(),
     val history: List<HistoryEvent> = emptyList(),
-    val revealedCommand: String? = null,
     val errorMessage: String? = null,
+    val welcomeCompleted: Boolean = false,
+    val advancedUnlocked: Boolean = false,
 )
 
 class KhidkiViewModel(application: Application) : AndroidViewModel(application) {
@@ -55,6 +58,8 @@ class KhidkiViewModel(application: Application) : AndroidViewModel(application) 
 
     fun refresh(hasSmsPermission: Boolean) {
         runtime.refreshAppState(hasSmsPermission)
+        val hasNotifications =
+            PermissionGate.hasNotificationPermission(getApplication())
         viewModelScope.launch {
             val configs = Blocking.io { container.configurationRepository.getAll() }
             val history = Blocking.io { container.auditStore.listRecent(100) }
@@ -64,12 +69,48 @@ class KhidkiViewModel(application: Application) : AndroidViewModel(application) 
             _uiState.value = _uiState.value.copy(
                 masterEnabled = runtime.appPreferences.isMasterEnabled,
                 hasSmsPermission = hasSmsPermission,
+                hasNotificationPermission = hasNotifications,
                 appStateLabel = runtime.engine.appState().name,
                 activeSession = session,
                 configurations = configs,
                 history = history,
-                errorMessage = null,
+                welcomeCompleted = runtime.appPreferences.welcomeCompleted,
+                advancedUnlocked = runtime.appPreferences.advancedUnlocked,
             )
+        }
+    }
+
+    fun clearErrorMessage() {
+        _uiState.value = _uiState.value.copy(errorMessage = null)
+    }
+
+    fun completeWelcome() {
+        runtime.appPreferences.welcomeCompleted = true
+        _uiState.value = _uiState.value.copy(welcomeCompleted = true)
+    }
+
+    fun unlockAdvanced() {
+        runtime.appPreferences.advancedUnlocked = true
+        _uiState.value = _uiState.value.copy(advancedUnlocked = true)
+    }
+
+    fun setConfigurationEnabled(
+        id: ConfigurationId,
+        enabled: Boolean,
+        hasSmsPermission: Boolean,
+    ) {
+        viewModelScope.launch {
+            val existing =
+                _uiState.value.configurations.find { it.id == id }
+                    ?: return@launch
+            val updated =
+                existing.copy(
+                    enabled = enabled,
+                    isEnabled = enabled,
+                    updatedAtMillis = runtime.clock.nowMillis(),
+                )
+            Blocking.io { container.configurationRepository.upsert(updated) }
+            refresh(hasSmsPermission)
         }
     }
 

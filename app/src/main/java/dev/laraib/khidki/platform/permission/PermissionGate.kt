@@ -15,15 +15,25 @@ object PermissionGate {
         return receive == PackageManager.PERMISSION_GRANTED && send == PackageManager.PERMISSION_GRANTED
     }
 
+    fun hasNotificationPermission(context: Context): Boolean {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
+            return true
+        }
+        return ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.POST_NOTIFICATIONS,
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
     fun createAppDetailsIntent(packageName: String): Intent =
         Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
             data = Uri.fromParts("package", packageName, null)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
 
-    fun sideloadSetupSteps(): List<String> = listOf(
-        "Tap Open App Info, then ⋮ → Allow restricted settings (Android 15+).",
-        "Return to Khidki and tap Grant SMS Permissions.",
-        "Realme GT 6T: set Battery to Unrestricted and enable Auto-start.",
+    fun setupSteps(): List<String> = listOf(
+        "Open App Info, then ⋮ → Allow restricted settings (Android 15+).",
+        "Return here and tap Grant permissions.",
+        "On Realme/ColorOS: Battery → Unrestricted, and enable Auto-start.",
     )
 }

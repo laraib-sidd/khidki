@@ -29,15 +29,10 @@ import dev.laraib.khidki.domain.model.HistoryEventType
 import dev.laraib.khidki.ui.KhidkiUiState
 import dev.laraib.khidki.ui.KhidkiViewModel
 import dev.laraib.khidki.ui.components.UiUtils
-import dev.laraib.khidki.ui.theme.SlateSecondaryLight
-import dev.laraib.khidki.ui.theme.StatusAmber
-import dev.laraib.khidki.ui.theme.StatusAmberBg
-import dev.laraib.khidki.ui.theme.StatusBlue
-import dev.laraib.khidki.ui.theme.StatusBlueBg
-import dev.laraib.khidki.ui.theme.StatusGreen
-import dev.laraib.khidki.ui.theme.StatusGreenBg
-import dev.laraib.khidki.ui.theme.StatusRed
-import dev.laraib.khidki.ui.theme.StatusRedBg
+import androidx.compose.ui.res.stringResource
+import dev.laraib.khidki.R
+import dev.laraib.khidki.ui.theme.StatusTone
+import dev.laraib.khidki.ui.theme.statusToneColors
 
 @Composable
 fun HistoryScreen(
@@ -61,14 +56,14 @@ fun HistoryScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Audit trail (${state.history.size} events)",
+                text = stringResource(R.string.history_title, state.history.size),
                 style = MaterialTheme.typography.titleMedium,
             )
             OutlinedButton(
                 onClick = { showClearConfirm = true },
                 enabled = state.history.isNotEmpty(),
             ) {
-                Text("Clear history")
+                Text(stringResource(R.string.history_clear))
             }
         }
 
@@ -79,7 +74,7 @@ fun HistoryScreen(
                     .padding(12.dp),
             ) {
                 Text(
-                    text = "No audit events recorded yet.",
+                    text = stringResource(R.string.history_empty),
                     modifier = Modifier.padding(16.dp),
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -100,8 +95,8 @@ fun HistoryScreen(
     if (showClearConfirm) {
         AlertDialog(
             onDismissRequest = { showClearConfirm = false },
-            title = { Text("Clear audit history?") },
-            text = { Text("This permanently removes all stored audit events on this device.") },
+            title = { Text(stringResource(R.string.history_clear_confirm_title)) },
+            text = { Text(stringResource(R.string.history_clear_confirm_body)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -156,19 +151,19 @@ private fun HistoryEventCard(event: HistoryEvent) {
     }
 }
 
+@Composable
 private fun historyBadgeColors(type: HistoryEventType): Pair<androidx.compose.ui.graphics.Color, androidx.compose.ui.graphics.Color> =
     when (type) {
-        HistoryEventType.SESSION_ARMED -> StatusGreen to StatusGreenBg
+        HistoryEventType.SESSION_ARMED, HistoryEventType.TIMED_ARMED ->
+            statusToneColors(StatusTone.Success)
         HistoryEventType.SESSION_SUBMITTED, HistoryEventType.SESSION_CLAIMED ->
-            StatusBlue to StatusBlueBg
+            statusToneColors(StatusTone.Info)
         HistoryEventType.AUTH_FAILURE, HistoryEventType.AUTH_LOCKOUT ->
-            StatusRed to StatusRedBg
-        HistoryEventType.DUPLICATE_REJECTED, HistoryEventType.BUDGET_REJECTED ->
-            StatusAmber to StatusAmberBg
+            statusToneColors(StatusTone.Error)
+        HistoryEventType.DUPLICATE_REJECTED, HistoryEventType.BUDGET_REJECTED,
+        HistoryEventType.TIMED_CANCELLED, HistoryEventType.TIMED_EXPIRED,
+        ->
+            statusToneColors(StatusTone.Warning)
         HistoryEventType.SESSION_TERMINAL, HistoryEventType.CONFIG_CHANGED ->
-            SlateSecondaryLight to androidx.compose.ui.graphics.Color(0xFFE2E8F0)
-        HistoryEventType.TIMED_ARMED ->
-            StatusGreen to StatusGreenBg
-        HistoryEventType.TIMED_CANCELLED, HistoryEventType.TIMED_EXPIRED ->
-            StatusAmber to StatusAmberBg
+            statusToneColors(StatusTone.Info)
     }

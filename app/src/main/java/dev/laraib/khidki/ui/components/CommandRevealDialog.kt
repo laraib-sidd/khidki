@@ -1,7 +1,5 @@
 package dev.laraib.khidki.ui.components
 
-import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,36 +12,35 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import dev.laraib.khidki.ui.theme.CardBackgroundLight
-import dev.laraib.khidki.ui.theme.TealPrimaryLight
+import dev.laraib.khidki.R
 
 @Composable
 fun CommandRevealDialog(
     command: String,
     onDismiss: () -> Unit,
+    onCopied: () -> Unit = {},
 ) {
     val context = LocalContext.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Forwarding command ready") },
+        title = { Text(stringResource(R.string.command_dialog_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "Share this exact command with the requester. " +
-                        "The 8-digit password is only generated once.",
+                    text = stringResource(R.string.command_dialog_body),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Text(
                     text = command,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(CardBackgroundLight)
                         .padding(16.dp),
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontFamily = FontFamily.Monospace,
-                        color = TealPrimaryLight,
+                        color = MaterialTheme.colorScheme.primary,
                     ),
                 )
             }
@@ -52,15 +49,16 @@ fun CommandRevealDialog(
             Button(
                 onClick = {
                     UiUtils.copyToClipboard(context, "khidki-command", command)
-                    Toast.makeText(context, "Command copied", Toast.LENGTH_SHORT).show()
+                    onCopied()
+                    onDismiss()
                 },
             ) {
-                Text("Copy command")
+                Text(stringResource(R.string.command_copy))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Dismiss")
+                Text(stringResource(R.string.command_dismiss))
             }
         },
     )

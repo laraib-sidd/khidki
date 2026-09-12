@@ -53,6 +53,40 @@ object UiUtils {
         clipboard?.setPrimaryClip(clip)
     }
 
+    fun humanizeDiagnosticEvent(raw: String): String {
+        val chip = parseDiagnosticEvent(raw)
+        val message = chip.message
+        return when (chip.type) {
+            DiagnosticChipType.IN ->
+                "Message received"
+            DiagnosticChipType.CMD ->
+                when {
+                    message.contains("timed", ignoreCase = true) -> "Timed window armed"
+                    message.contains("armed", ignoreCase = true) -> "Forwarding window armed"
+                    message.contains("invalid", ignoreCase = true) -> "Command rejected"
+                    else -> "Command processed"
+                }
+            DiagnosticChipType.FWD -> "Matching message forwarded"
+            DiagnosticChipType.DROP ->
+                when {
+                    message.contains("no active", ignoreCase = true) -> "No active window — message not forwarded"
+                    message.contains("filter", ignoreCase = true) -> "Message did not match filters"
+                    message.contains("duplicate", ignoreCase = true) -> "Duplicate message blocked"
+                    else -> "Message not forwarded"
+                }
+            DiagnosticChipType.LOG -> simplifyLogLine(message)
+        }
+    }
+
+    private fun simplifyLogLine(message: String): String {
+        val withoutPrefix = message.removePrefix("UI ").trim()
+        return when {
+            withoutPrefix.contains("cancelled", ignoreCase = true) -> "Window stopped"
+            withoutPrefix.contains("armed timed", ignoreCase = true) -> "Timed window armed from app"
+            else -> withoutPrefix.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+        }
+    }
+
     fun parseDiagnosticEvent(raw: String): DiagnosticChip {
         val trimmed = raw.trim()
         return when {
