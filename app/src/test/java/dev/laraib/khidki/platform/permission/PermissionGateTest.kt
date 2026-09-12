@@ -21,8 +21,8 @@ class PermissionGateTest {
     }
 
     @Test
-    fun sideloadSetupSteps_listsRequiredSteps() {
-        val steps = PermissionGate.sideloadSetupSteps()
+    fun setupSteps_listsRequiredSteps() {
+        val steps = PermissionGate.setupSteps()
         assertEquals(3, steps.size)
         assertTrue(steps.first().contains("restricted settings"))
         assertTrue(steps.last().contains("Realme"))

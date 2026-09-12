@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -94,7 +95,7 @@ fun ConfigsScreen(
                 .padding(horizontal = 4.dp),
         ) {
             Text(
-                text = "Forwarding rules (${state.configurations.size}/20)",
+                text = stringResource(R.string.rules_title, state.configurations.size),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             )
@@ -106,7 +107,7 @@ fun ConfigsScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 ) {
                     Text(
-                        text = "No rules configured. Tap + to add a forwarding rule.",
+                        text = stringResource(R.string.rules_empty),
                         modifier = Modifier.padding(16.dp),
                         style = MaterialTheme.typography.bodyMedium,
                     )
@@ -126,6 +127,9 @@ fun ConfigsScreen(
                             config = config,
                             onEdit = { editingConfig = config },
                             onDelete = { pendingDelete = config },
+                            onEnabledChange = { enabled ->
+                                viewModel.setConfigurationEnabled(config.id, enabled, hasSmsPermission)
+                            },
                         )
                     }
                 }
@@ -193,11 +197,13 @@ fun ConfigsScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ConfigRuleCard(
     config: Configuration,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onEnabledChange: (Boolean) -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -211,10 +217,9 @@ private fun ConfigRuleCard(
             ) {
                 Text(config.label, style = MaterialTheme.typography.titleMedium)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = if (config.enabled) "Active" else "Disabled",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (config.enabled) StatusGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                    Switch(
+                        checked = config.enabled,
+                        onCheckedChange = onEnabledChange,
                     )
                     IconButton(onClick = onEdit) {
                         Icon(Icons.Default.Edit, contentDescription = "Edit rule")
@@ -228,14 +233,22 @@ private fun ConfigRuleCard(
                 text = UiUtils.maskPhoneNumber(config.requester.e164),
                 style = MaterialTheme.typography.bodyMedium,
             )
-            Text(
-                text = "Sender: ${config.filterRules.senderPatterns.joinToString()}",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Text(
-                text = "Content: ${config.filterRules.contentPatterns.joinToString()}",
-                style = MaterialTheme.typography.bodySmall,
-            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                config.filterRules.senderPatterns.forEach { pattern ->
+                    AssistChip(
+                        onClick = {},
+                        label = { Text(truncatePattern(pattern)) },
+                        enabled = false,
+                    )
+                }
+                config.filterRules.contentPatterns.forEach { pattern ->
+                    AssistChip(
+                        onClick = {},
+                        label = { Text(truncatePattern(pattern)) },
+                        enabled = false,
+                    )
+                }
+            }
             Text(
                 text = "${config.windowSeconds / 60} min window",
                 style = MaterialTheme.typography.bodySmall,
@@ -244,6 +257,9 @@ private fun ConfigRuleCard(
         }
     }
 }
+
+private fun truncatePattern(pattern: String): String =
+    if (pattern.length <= 24) pattern else pattern.take(21) + "..."
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable

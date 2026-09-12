@@ -4,6 +4,24 @@ All notable changes to Khidki are documented here.
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-09-12
+
+### Added
+- First-run welcome sheet (what Khidki does, SMS-only, setup)
+- Splash screen and refined launcher icon
+- Rule enable/disable toggle on Configs
+- Notification permission status in Settings
+- Advanced tools (filter tester, technical activity log) — triple-tap version to unlock
+- `docs/INSTALL.md` for sharing with recipients
+- `scripts/create_release_keystore.sh` for stable release signing
+
+### Changed
+- **Home** tab (was Status) with human-readable **Recent activity** feed
+- Polished copy throughout — no “sideload” / “diagnostic stream” on default path
+- Dark-mode-aware status colors
+- Snackbar feedback for errors and cancelled biometric auth
+- Release builds prefer `app/release-keystore/` when present
+
 ### Physical testing (2026-09-11, Realme GT 6T)
 
 - **Pass:** Sideload permissions, Phase 6 UI, SMS receive (Blinkit OTP), diagnostic stream

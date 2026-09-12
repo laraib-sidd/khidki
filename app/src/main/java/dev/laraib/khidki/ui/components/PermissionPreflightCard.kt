@@ -12,9 +12,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import dev.laraib.khidki.ui.theme.StatusAmber
-import dev.laraib.khidki.ui.theme.StatusAmberBg
+import dev.laraib.khidki.R
+import dev.laraib.khidki.ui.theme.StatusTone
+import dev.laraib.khidki.ui.theme.statusToneColors
 
 @Composable
 fun PermissionPreflightCard(
@@ -23,22 +25,22 @@ fun PermissionPreflightCard(
     onRequestPermissions: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val (accent, background) = statusToneColors(StatusTone.Warning)
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = StatusAmberBg),
+        colors = CardDefaults.cardColors(containerColor = background),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                text = "Sideload setup required",
+                text = stringResource(R.string.setup_required_title),
                 style = MaterialTheme.typography.titleMedium,
-                color = StatusAmber,
+                color = accent,
             )
             Text(
-                text = "Android 15+ blocks SMS permissions until restricted settings are allowed. " +
-                    "Complete these steps before granting SMS.",
+                text = stringResource(R.string.setup_required_body),
                 style = MaterialTheme.typography.bodyMedium,
             )
             steps.forEachIndexed { index, step ->
@@ -48,10 +50,10 @@ fun PermissionPreflightCard(
                 )
             }
             Button(onClick = onOpenAppInfo, modifier = Modifier.fillMaxWidth()) {
-                Text("Open App Info")
+                Text(stringResource(R.string.open_app_info))
             }
             OutlinedButton(onClick = onRequestPermissions, modifier = Modifier.fillMaxWidth()) {
-                Text("Grant SMS Permissions")
+                Text(stringResource(R.string.grant_permissions))
             }
         }
     }

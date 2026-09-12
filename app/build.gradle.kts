@@ -15,7 +15,7 @@ android {
         minSdk = 31
         targetSdk = 36
         versionCode = System.getenv("KHIDKI_VERSION_CODE")?.toIntOrNull() ?: 1
-        versionName = "1.2.0"
+        versionName = "1.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -26,11 +26,25 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
+        create("release") {
+            val keystoreFile = file("release-keystore/release.keystore")
+            if (keystoreFile.exists()) {
+                storeFile = keystoreFile
+                storePassword = System.getenv("KHIDKI_RELEASE_STORE_PASSWORD") ?: "khidki-release"
+                keyAlias = System.getenv("KHIDKI_RELEASE_KEY_ALIAS") ?: "khidki"
+                keyPassword = System.getenv("KHIDKI_RELEASE_KEY_PASSWORD") ?: "khidki-release"
+            }
+        }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig =
+                if (signingConfigs.getByName("release").storeFile?.exists() == true) {
+                    signingConfigs.getByName("release")
+                } else {
+                    signingConfigs.getByName("debug")
+                }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -87,8 +101,8 @@ dependencies {
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.lifecycle.viewmodel.compose)
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
-    implementation(libs.navigation.compose)
     implementation("androidx.core:core-ktx:1.15.0")
+    implementation(libs.core.splashscreen)
     implementation(libs.re2j)
     implementation(libs.libphonenumber)
     implementation(libs.security.crypto)
