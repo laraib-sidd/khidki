@@ -57,6 +57,12 @@ Only for recovery — normal path is merge → CI → release.
 | Secret | Purpose |
 |---|---|
 | `KHIDKI_PREVIEW_KEYSTORE_BASE64` | Override committed debug keystore (base64) |
+| `KHIDKI_RELEASE_KEYSTORE_BASE64` | Stable release keystore (`app/release-keystore/release.keystore`) |
+| `KHIDKI_RELEASE_STORE_PASSWORD` | Release keystore password |
+| `KHIDKI_RELEASE_KEY_ALIAS` | Release key alias (default `khidki`) |
+| `KHIDKI_RELEASE_KEY_PASSWORD` | Release key password |
+
+Generate locally: `bash scripts/create_release_keystore.sh`. Play Protect appeal needs a stable cert — see `docs/PLAY_PROTECT.md`.
 
 ## Local parity
 

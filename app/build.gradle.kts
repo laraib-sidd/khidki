@@ -15,7 +15,7 @@ android {
         minSdk = 31
         targetSdk = 36
         versionCode = System.getenv("KHIDKI_VERSION_CODE")?.toIntOrNull() ?: 1
-        versionName = "1.3.0"
+        versionName = "1.4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

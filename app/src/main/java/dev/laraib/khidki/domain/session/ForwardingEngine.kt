@@ -1,6 +1,8 @@
 package dev.laraib.khidki.domain.session
 
 import dev.laraib.khidki.domain.budget.SmsBudgetLedger
+import dev.laraib.khidki.domain.filter.ForwardingPolicy
+import dev.laraib.khidki.domain.filter.ForwardingPresets
 import dev.laraib.khidki.domain.model.AppState
 import dev.laraib.khidki.domain.model.AuditEvent
 import dev.laraib.khidki.domain.model.AuditEventType
@@ -10,6 +12,8 @@ import dev.laraib.khidki.domain.model.CandidateHandleResult
 import dev.laraib.khidki.domain.model.CanonicalPhone
 import dev.laraib.khidki.domain.model.CommandHandleResult
 import dev.laraib.khidki.domain.model.ConfigurationId
+import dev.laraib.khidki.domain.model.ConfigurationVersion
+import dev.laraib.khidki.domain.model.FilterRules
 import dev.laraib.khidki.domain.model.SessionOrigin
 import dev.laraib.khidki.domain.model.TimedArmRejectReason
 import dev.laraib.khidki.domain.model.TimedArmResult
@@ -170,7 +174,11 @@ class ForwardingEngine(
         return CommandHandleResult.SessionCreated(session)
     }
 
-    fun armTimedWindow(configId: ConfigurationId, durationSeconds: Int): TimedArmResult {
+    fun armTimedWindow(
+        destination: CanonicalPhone,
+        durationSeconds: Int,
+        policy: ForwardingPolicy,
+    ): TimedArmResult {
         refreshSessions()
 
         if (appState == AppState.PAUSED) {
@@ -182,11 +190,8 @@ class ForwardingEngine(
         if (durationSeconds < MIN_TIMED_DURATION_SECONDS || durationSeconds > MAX_TIMED_DURATION_SECONDS) {
             return TimedArmResult.Rejected(TimedArmRejectReason.DURATION_OUT_OF_RANGE)
         }
-
-        val configuration = configurationRepository.findById(configId)
-            ?: return TimedArmResult.Rejected(TimedArmRejectReason.CONFIGURATION_NOT_FOUND)
-        if (!configuration.enabled) {
-            return TimedArmResult.Rejected(TimedArmRejectReason.CONFIGURATION_DISABLED)
+        if (!policy.hasAnyEnabled()) {
+            return TimedArmResult.Rejected(TimedArmRejectReason.NO_CATEGORIES_ENABLED)
         }
 
         val activeSession = sessionRepository.getActiveSession()
@@ -200,31 +205,45 @@ class ForwardingEngine(
         val now = clock.nowMillis()
         val session = AuthorizationSession(
             id = UUID.randomUUID(),
-            configurationId = configuration.id,
-            configurationVersion = configuration.version,
-            requester = configuration.requester,
-            label = configuration.label,
-            filterRules = configuration.filterRules,
+            configurationId = TimedSessionDefaults.PLACEHOLDER_CONFIG_ID,
+            configurationVersion = ConfigurationVersion(1),
+            requester = destination,
+            label = TimedSessionDefaults.LABEL,
+            filterRules = FilterRules(senderPatterns = emptyList(), contentPatterns = emptyList()),
             state = SessionState.ARMED,
             armedAtMillis = now,
             expiresAtMillis = now + durationSeconds * 1_000L,
             bootId = clock.bootId(),
             windowSeconds = durationSeconds,
-            configurationSnapshot = configuration,
             origin = SessionOrigin.TIMED,
             forwardCount = 0,
+            forwardingPolicy = policy,
         )
         sessionRepository.saveSession(session)
         auditStore.record(
             AuditEvent(
                 type = AuditEventType.TIMED_ARMED,
                 atMillis = now,
-                requester = configuration.requester,
+                requester = destination,
                 sessionId = session.id,
                 detail = "${durationSeconds}s",
             ),
         )
         return TimedArmResult.Success(session)
+    }
+
+    @Deprecated("Legacy config-based arm; use armTimedWindow(destination, duration, policy)")
+    fun armTimedWindow(configId: ConfigurationId, durationSeconds: Int): TimedArmResult {
+        val configuration = configurationRepository.findById(configId)
+            ?: return TimedArmResult.Rejected(TimedArmRejectReason.CONFIGURATION_NOT_FOUND)
+        if (!configuration.enabled) {
+            return TimedArmResult.Rejected(TimedArmRejectReason.CONFIGURATION_DISABLED)
+        }
+        return armTimedWindow(
+            destination = configuration.requester,
+            durationSeconds = durationSeconds,
+            policy = ForwardingPolicy(otpBanks = true, otpOther = true),
+        )
     }
 
     fun cancelTimedWindow(): Boolean {
@@ -272,18 +291,28 @@ class ForwardingEngine(
             }
         }
 
-        val match = ruleMatcher.matches(
-            rules = refreshedSession.filterRules,
-            sender = sender,
-            body = body,
-            trustedRequesters = setOf(refreshedSession.requester.e164),
-        )
-        when (match.outcome) {
-            RuleMatchOutcome.INVALID_RULES -> return CandidateHandleResult.NoMatch
-            RuleMatchOutcome.EXCLUDED -> return CandidateHandleResult.NoMatch
-            RuleMatchOutcome.NO_MATCH -> return CandidateHandleResult.NoMatch
-            RuleMatchOutcome.BODY_TOO_LONG -> return CandidateHandleResult.OversizedMessage
-            RuleMatchOutcome.MATCHED -> Unit
+        val matchesFilter =
+            when (refreshedSession.origin) {
+                SessionOrigin.TIMED ->
+                    ForwardingPresets.matches(sender, body, refreshedSession.forwardingPolicy)
+                SessionOrigin.REQUEST -> {
+                    val match = ruleMatcher.matches(
+                        rules = refreshedSession.filterRules,
+                        sender = sender,
+                        body = body,
+                        trustedRequesters = setOf(refreshedSession.requester.e164),
+                    )
+                    when (match.outcome) {
+                        RuleMatchOutcome.INVALID_RULES -> false
+                        RuleMatchOutcome.EXCLUDED -> false
+                        RuleMatchOutcome.NO_MATCH -> false
+                        RuleMatchOutcome.BODY_TOO_LONG -> return CandidateHandleResult.OversizedMessage
+                        RuleMatchOutcome.MATCHED -> true
+                    }
+                }
+            }
+        if (!matchesFilter) {
+            return CandidateHandleResult.NoMatch
         }
 
         val forwardParts = budgetLedger.estimateParts(body)

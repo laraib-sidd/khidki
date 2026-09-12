@@ -113,6 +113,18 @@ jobs:
             echo "$KEYSTORE_B64" | base64 --decode > app/debug-keystore/debug.keystore
           fi
 
+      - name: Decode release keystore if present
+        env:
+          RELEASE_KEYSTORE_B64: ${{ secrets.KHIDKI_RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.KHIDKI_RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.KHIDKI_RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.KHIDKI_RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ -n "$RELEASE_KEYSTORE_B64" ]; then
+            mkdir -p app/release-keystore
+            echo "$RELEASE_KEYSTORE_B64" | base64 --decode > app/release-keystore/release.keystore
+          fi
+
       - run: chmod +x gradlew scripts/audit_manifest.sh scripts/prepare_release_apk.sh scripts/generate_release_notes.sh
 
       - name: Build release APK

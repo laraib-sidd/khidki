@@ -5,6 +5,7 @@ import dev.laraib.khidki.data.db.entities.ConfigurationEntity
 import dev.laraib.khidki.data.db.entities.CredentialEntity
 import dev.laraib.khidki.data.db.entities.HistoryEntity
 import dev.laraib.khidki.data.db.entities.SessionEntity
+import dev.laraib.khidki.domain.filter.ForwardingPolicy
 import dev.laraib.khidki.domain.model.AuthorizationSession
 import dev.laraib.khidki.domain.model.BudgetReservation
 import dev.laraib.khidki.domain.model.BudgetReservationStatus
@@ -129,6 +130,7 @@ internal fun SessionEntity.toDomain(): AuthorizationSession {
         credentialId = credentialId?.let(UUID::fromString),
         origin = sessionOrigin,
         forwardCount = forwardCount,
+        forwardingPolicy = ForwardingPolicy.fromJson(forwardingPolicyJson),
         forwarded = when (sessionOrigin) {
             SessionOrigin.TIMED -> forwardCount > 0
             SessionOrigin.REQUEST ->
@@ -156,6 +158,7 @@ internal fun AuthorizationSession.toEntity(): SessionEntity {
         credentialId = credentialId?.toString(),
         origin = origin.name,
         forwardCount = forwardCount,
+        forwardingPolicyJson = forwardingPolicy.toJson().toString(),
     )
 }
 

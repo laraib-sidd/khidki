@@ -44,9 +44,13 @@ Without this, SMS permission prompts may fail silently.
 
 ### 7. First use
 
-1. **Home** → turn **Forwarding** on.
-2. **Rules** → create a forwarding rule.
-3. **Home** → **Arm timed forwarding**, or have the requester send the `req` command by SMS.
+1. Complete welcome → enter **trusted number** → pick categories.
+2. **Rules** → adjust what to forward (Shopping, Banks, Government, etc.).
+3. **Home** → **Start forwarding** → pick duration (15m–2h).
+
+### Play Protect
+
+Sideloaded SMS apps may show a Play Protect warning. Khidki cannot remove this in code. See **`docs/PLAY_PROTECT.md`**.
 
 ## Sharing with someone else
 

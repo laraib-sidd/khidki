@@ -39,7 +39,9 @@ Working name “WindowSMS” is retired.
 | Max configs | 20 |
 | Max live credentials per requester | 5 |
 | Failed auth | 5 failures / 15 minutes locks that known requester for 15 minutes. Unknown numbers: reject before password check, no reply, do not lock known requesters. |
-| Command | `req <PASSWORD>` — ASCII, case-insensitive keyword, one numeric token, max 64 chars. Spec parser rules in the execution plan. |
+| Command | **Retired in v1.4.** Timed in-app arm only. `req` parser and credential tables remain one release for Room safety; inbound SMS is never parsed as a command. |
+| Trusted number | One global number in Settings / first-run (not per-rule requester). |
+| Filters | Kind + domain category toggles (`ForwardingPresets`); Government (EPF) separate from Banks. |
 
 ## Toolchain (M0 pin; change only if the build proves a version unusable)
 

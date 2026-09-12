@@ -4,6 +4,29 @@ All notable changes to Khidki are documented here.
 
 ## [Unreleased]
 
+### Changed
+- Consumer UI polish: onboarding progress steps, setup checklist with shortcuts, human activity feed, 48dp touch targets, status pill when forwarding is live
+
+## [1.4.0] — 2026-09-12
+
+### Added
+- Global trusted number (Settings + first-run welcome)
+- Category-based forwarding rules (kind + domain): Shopping, Banks, UPI, Government, alerts, All SMS, custom senders
+- `ForwardingPresets` classifier — EPF is Government, not Banks
+- Single **Start forwarding** / **Stop** on Home (no separate master + arm)
+- `docs/PLAY_PROTECT.md` — honest Play Protect guidance and appeal path
+- CI support for `KHIDKI_RELEASE_KEYSTORE_BASE64` release signing
+
+### Changed
+- Retired SMS `req` command flow — timed in-app arm only; inbound SMS always evaluated as forward candidates
+- Rules tab is category toggles, not regex recipes
+- New window + outgoing-slip launcher mark
+- Room DB v3: `forwardingPolicyJson` on sessions
+
+### Removed
+- Access-code / `CommandRevealDialog` UI
+- Per-rule requester and regex setup from default path
+
 ## [1.3.0] — 2026-09-12
 
 ### Added

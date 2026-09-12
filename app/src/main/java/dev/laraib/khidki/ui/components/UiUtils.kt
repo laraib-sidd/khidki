@@ -69,7 +69,10 @@ object UiUtils {
             DiagnosticChipType.FWD -> "Matching message forwarded"
             DiagnosticChipType.DROP ->
                 when {
-                    message.contains("no active", ignoreCase = true) -> "No active window — message not forwarded"
+                    message.contains("NoMatch", ignoreCase = true) -> "Did not match your rules"
+                    message.contains("no active", ignoreCase = true) ||
+                        message.contains("NoActiveSession", ignoreCase = true) ->
+                        "No active window"
                     message.contains("filter", ignoreCase = true) -> "Message did not match filters"
                     message.contains("duplicate", ignoreCase = true) -> "Duplicate message blocked"
                     else -> "Message not forwarded"
@@ -82,7 +85,9 @@ object UiUtils {
         val withoutPrefix = message.removePrefix("UI ").trim()
         return when {
             withoutPrefix.contains("cancelled", ignoreCase = true) -> "Window stopped"
-            withoutPrefix.contains("armed timed", ignoreCase = true) -> "Timed window armed from app"
+            withoutPrefix.contains("started forwarding", ignoreCase = true) -> "Forwarding started"
+            withoutPrefix.contains("stopped forwarding", ignoreCase = true) -> "Forwarding stopped"
+            withoutPrefix.contains("armed timed", ignoreCase = true) -> "Forwarding window opened"
             else -> withoutPrefix.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
         }
     }
@@ -97,8 +102,13 @@ object UiUtils {
             trimmed.contains("FORWARD", ignoreCase = true) ||
                 trimmed.startsWith("FWD", ignoreCase = true) ->
                 DiagnosticChip(DiagnosticChipType.FWD, trimmed)
-            trimmed.startsWith("DROP", ignoreCase = true) ||
-                trimmed.startsWith("CANDIDATE", ignoreCase = true) ->
+            trimmed.startsWith("CANDIDATE", ignoreCase = true) ->
+                if (trimmed.contains("Forwarded", ignoreCase = true)) {
+                    DiagnosticChip(DiagnosticChipType.FWD, trimmed)
+                } else {
+                    DiagnosticChip(DiagnosticChipType.DROP, trimmed)
+                }
+            trimmed.startsWith("DROP", ignoreCase = true) ->
                 DiagnosticChip(DiagnosticChipType.DROP, trimmed)
             else -> DiagnosticChip(DiagnosticChipType.LOG, trimmed)
         }

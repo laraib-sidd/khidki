@@ -21,4 +21,16 @@ object KhidkiMigrations {
                 )
             }
         }
+
+    val MIGRATION_2_3: Migration =
+        object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    ALTER TABLE sessions
+                    ADD COLUMN forwardingPolicyJson TEXT NOT NULL DEFAULT '{}'
+                    """.trimIndent(),
+                )
+            }
+        }
 }

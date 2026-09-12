@@ -34,7 +34,6 @@ class KhidkiRuntime private constructor(
     fun refreshAppState(hasSmsPermission: Boolean) {
         when {
             !hasSmsPermission -> engine.setAppState(AppState.BLOCKED_PERMISSION)
-            !appPreferences.isMasterEnabled -> engine.setAppState(AppState.PAUSED)
             else -> engine.setAppState(AppState.READY)
         }
     }

@@ -77,6 +77,10 @@ private val LightColorScheme = lightColorScheme(
     tertiary = IndigoTertiaryLight,
     surface = SurfaceLight,
     background = SurfaceLight,
+    surfaceContainerLow = Color(0xFFEEF6F2),
+    surfaceContainerHighest = Color(0xFFDCE8E3),
+    onSurfaceVariant = Color(0xFF3F4946),
+    outlineVariant = Color(0xFFBEC9C4),
 )
 
 private val DarkColorScheme = darkColorScheme(
@@ -88,6 +92,10 @@ private val DarkColorScheme = darkColorScheme(
     tertiary = IndigoTertiaryDark,
     surface = SurfaceDark,
     background = SurfaceDark,
+    surfaceContainerLow = Color(0xFF1F2423),
+    surfaceContainerHighest = Color(0xFF2B3130),
+    onSurfaceVariant = Color(0xFFBFC9C4),
+    outlineVariant = Color(0xFF3F4946),
 )
 
 private val KhidkiTypography = Typography(
@@ -115,6 +123,41 @@ private val KhidkiTypography = Typography(
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp,
+    ),
+    bodyLarge = TextStyle(
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.sp,
+        lineHeight = 24.sp,
+    ),
+    bodyMedium = TextStyle(
+        fontWeight = FontWeight.Normal,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+    ),
+    bodySmall = TextStyle(
+        fontWeight = FontWeight.Normal,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+    ),
+    displaySmall = TextStyle(
+        fontWeight = FontWeight.Bold,
+        fontSize = 36.sp,
+        lineHeight = 44.sp,
+    ),
+    headlineMedium = TextStyle(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 28.sp,
+        lineHeight = 36.sp,
+    ),
+    labelMedium = TextStyle(
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+    ),
+    labelSmall = TextStyle(
+        fontWeight = FontWeight.Medium,
+        fontSize = 11.sp,
+        lineHeight = 16.sp,
     ),
 )
 

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -23,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import dev.laraib.khidki.BuildConfig
 import dev.laraib.khidki.R
@@ -30,12 +32,15 @@ import dev.laraib.khidki.domain.filter.Re2RuleMatcher
 import dev.laraib.khidki.domain.model.FilterRules
 import dev.laraib.khidki.domain.model.RuleMatchOutcome
 import dev.laraib.khidki.ui.KhidkiUiState
+import dev.laraib.khidki.ui.KhidkiViewModel
+import dev.laraib.khidki.ui.components.UiUtils
 import dev.laraib.khidki.ui.theme.StatusTone
 import dev.laraib.khidki.ui.theme.statusToneColors
 
 @Composable
 fun SettingsScreen(
     state: KhidkiUiState,
+    viewModel: KhidkiViewModel,
     onOpenAppInfo: () -> Unit,
     onUnlockAdvanced: () -> Unit,
     modifier: Modifier = Modifier,
@@ -47,13 +52,17 @@ fun SettingsScreen(
             .padding(bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        TrustedNumberCard(
+            trustedNumber = state.trustedNumberE164,
+            onSave = { viewModel.setTrustedNumber(it, state.hasSmsPermission) },
+        )
         PermissionsCard(
             hasSmsPermission = state.hasSmsPermission,
             hasNotificationPermission = state.hasNotificationPermission,
             onOpenAppInfo = onOpenAppInfo,
         )
         PrivacyCard()
-        SecurityCard(configCount = state.configurations.size)
+        SecurityCard()
         AboutCard(
             advancedUnlocked = state.advancedUnlocked,
             onUnlockAdvanced = onUnlockAdvanced,
@@ -115,6 +124,50 @@ private fun PermissionsCard(
 }
 
 @Composable
+private fun TrustedNumberCard(
+    trustedNumber: String?,
+    onSave: (String) -> Unit,
+) {
+    var draft by remember(trustedNumber) { mutableStateOf(trustedNumber ?: "") }
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.settings_trusted_number_title),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                text = stringResource(R.string.settings_trusted_number_body),
+                style = MaterialTheme.typography.bodySmall,
+            )
+            if (trustedNumber != null) {
+                Text(
+                    text = UiUtils.maskPhoneNumber(trustedNumber),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            OutlinedTextField(
+                value = draft,
+                onValueChange = { draft = it },
+                label = { Text(stringResource(R.string.settings_trusted_number_label)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            )
+            Button(
+                onClick = { onSave(draft) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = draft.isNotBlank(),
+            ) {
+                Text(stringResource(R.string.settings_trusted_number_save))
+            }
+        }
+    }
+}
+
+@Composable
 private fun PrivacyCard() {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -139,7 +192,7 @@ private fun PrivacyCard() {
 }
 
 @Composable
-private fun SecurityCard(configCount: Int) {
+private fun SecurityCard() {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -149,10 +202,9 @@ private fun SecurityCard(configCount: Int) {
                 text = stringResource(R.string.settings_security_title),
                 style = MaterialTheme.typography.titleMedium,
             )
-            securityLine("No internet permission — data stays on device")
-            securityLine("8-digit access codes, hardware-backed storage")
-            securityLine("Lockout after 5 failed attempts per requester")
-            securityLine("Forwarding rules: $configCount / 20")
+            securityLine(stringResource(R.string.settings_security_no_internet))
+            securityLine(stringResource(R.string.settings_security_local))
+            securityLine(stringResource(R.string.settings_security_window))
         }
     }
 }

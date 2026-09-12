@@ -5,14 +5,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.laraib.khidki.KhidkiRuntime
 import dev.laraib.khidki.data.adapter.Blocking
-import dev.laraib.khidki.domain.auth.CredentialGenerator
+import dev.laraib.khidki.domain.filter.CustomSenderRule
+import dev.laraib.khidki.domain.filter.ForwardingPolicy
 import dev.laraib.khidki.domain.model.AuthorizationSession
 import dev.laraib.khidki.domain.model.CanonicalPhone
-import dev.laraib.khidki.domain.model.Configuration
-import dev.laraib.khidki.domain.model.ConfigurationId
-import dev.laraib.khidki.domain.model.ConfigurationVersion
-import dev.laraib.khidki.domain.model.CredentialPolicy
-import dev.laraib.khidki.domain.model.FilterRules
 import dev.laraib.khidki.domain.model.HistoryEvent
 import dev.laraib.khidki.domain.model.PhoneNormalizeResult
 import dev.laraib.khidki.domain.model.TimedArmRejectReason
@@ -26,26 +22,24 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 data class KhidkiUiState(
-    val masterEnabled: Boolean = false,
     val hasSmsPermission: Boolean = false,
     val hasNotificationPermission: Boolean = true,
     val appStateLabel: String = "—",
     val activeSession: AuthorizationSession? = null,
-    val configurations: List<Configuration> = emptyList(),
     val history: List<HistoryEvent> = emptyList(),
     val errorMessage: String? = null,
     val welcomeCompleted: Boolean = false,
     val advancedUnlocked: Boolean = false,
+    val trustedNumberE164: String? = null,
+    val forwardingPolicy: ForwardingPolicy = ForwardingPolicy.defaultFirstRun(),
 )
 
 class KhidkiViewModel(application: Application) : AndroidViewModel(application) {
     private val runtime: KhidkiRuntime = KhidkiRuntime.get(application)
     private val container = runtime.container
     private val phoneNormalizer = PhoneNormalizer()
-    private val credentialGenerator = CredentialGenerator()
 
     private val _uiState = MutableStateFlow(KhidkiUiState())
     val uiState: StateFlow<KhidkiUiState> = _uiState.asStateFlow()
@@ -61,22 +55,35 @@ class KhidkiViewModel(application: Application) : AndroidViewModel(application) 
         val hasNotifications =
             PermissionGate.hasNotificationPermission(getApplication())
         viewModelScope.launch {
-            val configs = Blocking.io { container.configurationRepository.getAll() }
+            migrateLegacySettingsIfNeeded()
             val history = Blocking.io { container.auditStore.listRecent(100) }
             val session = Blocking.io {
                 container.sessionRepository.getActiveSession(runtime.clock.nowMillis())
             }
             _uiState.value = _uiState.value.copy(
-                masterEnabled = runtime.appPreferences.isMasterEnabled,
                 hasSmsPermission = hasSmsPermission,
                 hasNotificationPermission = hasNotifications,
                 appStateLabel = runtime.engine.appState().name,
                 activeSession = session,
-                configurations = configs,
                 history = history,
                 welcomeCompleted = runtime.appPreferences.welcomeCompleted,
                 advancedUnlocked = runtime.appPreferences.advancedUnlocked,
+                trustedNumberE164 = runtime.appPreferences.trustedNumberE164,
+                forwardingPolicy = runtime.appPreferences.forwardingPolicy,
             )
+        }
+    }
+
+    private suspend fun migrateLegacySettingsIfNeeded() {
+        if (runtime.appPreferences.policyMigrated) {
+            return
+        }
+        Blocking.io {
+            val configs = container.configurationRepository.getAll()
+            if (runtime.appPreferences.trustedNumberE164 == null && configs.isNotEmpty()) {
+                runtime.appPreferences.trustedNumberE164 = configs.first().requester.e164
+            }
+            runtime.appPreferences.policyMigrated = true
         }
     }
 
@@ -84,9 +91,23 @@ class KhidkiViewModel(application: Application) : AndroidViewModel(application) 
         _uiState.value = _uiState.value.copy(errorMessage = null)
     }
 
-    fun completeWelcome() {
+    fun completeWelcome(trustedNumberRaw: String, policy: ForwardingPolicy) {
+        val trusted =
+            normalizePhone(trustedNumberRaw)
+                ?: run {
+                    _uiState.value = _uiState.value.copy(errorMessage = "Enter a valid phone number")
+                    return
+                }
+        runtime.appPreferences.trustedNumberE164 = trusted.e164
+        runtime.appPreferences.forwardingPolicy = policy
         runtime.appPreferences.welcomeCompleted = true
-        _uiState.value = _uiState.value.copy(welcomeCompleted = true)
+        runtime.appPreferences.isMasterEnabled = true
+        _uiState.value =
+            _uiState.value.copy(
+                welcomeCompleted = true,
+                trustedNumberE164 = trusted.e164,
+                forwardingPolicy = policy,
+            )
     }
 
     fun unlockAdvanced() {
@@ -94,50 +115,86 @@ class KhidkiViewModel(application: Application) : AndroidViewModel(application) 
         _uiState.value = _uiState.value.copy(advancedUnlocked = true)
     }
 
-    fun setConfigurationEnabled(
-        id: ConfigurationId,
-        enabled: Boolean,
-        hasSmsPermission: Boolean,
-    ) {
-        viewModelScope.launch {
-            val existing =
-                _uiState.value.configurations.find { it.id == id }
-                    ?: return@launch
-            val updated =
-                existing.copy(
-                    enabled = enabled,
-                    isEnabled = enabled,
-                    updatedAtMillis = runtime.clock.nowMillis(),
-                )
-            Blocking.io { container.configurationRepository.upsert(updated) }
-            refresh(hasSmsPermission)
-        }
-    }
-
-    fun setMasterEnabled(enabled: Boolean, hasSmsPermission: Boolean) {
-        runtime.appPreferences.isMasterEnabled = enabled
-        runtime.refreshAppState(hasSmsPermission)
+    fun setTrustedNumber(raw: String, hasSmsPermission: Boolean) {
+        val trusted =
+            normalizePhone(raw)
+                ?: run {
+                    _uiState.value = _uiState.value.copy(errorMessage = "Invalid phone number")
+                    return
+                }
+        runtime.appPreferences.trustedNumberE164 = trusted.e164
         refresh(hasSmsPermission)
     }
 
-    fun cancelActiveSession(hasSmsPermission: Boolean) {
-        val cancelled =
-            runtime.engine.cancelTimedWindow() || runtime.engine.cancelActiveWindow()
-        if (cancelled) {
-            DiagnosticEventBus.record("UI cancelled active window")
-        }
+    fun updateForwardingPolicy(policy: ForwardingPolicy, hasSmsPermission: Boolean) {
+        runtime.appPreferences.forwardingPolicy = policy
+        _uiState.value = _uiState.value.copy(forwardingPolicy = policy)
         refresh(hasSmsPermission)
     }
 
-    fun armTimedWindow(
-        configId: ConfigurationId,
-        durationSeconds: Int,
+    fun toggleCategory(
+        updater: (ForwardingPolicy) -> ForwardingPolicy,
         hasSmsPermission: Boolean,
     ) {
+        val updated = updater(_uiState.value.forwardingPolicy)
+        updateForwardingPolicy(updated, hasSmsPermission)
+    }
+
+    fun addCustomSender(
+        label: String,
+        senderContains: String,
+        codesOnly: Boolean,
+        hasSmsPermission: Boolean,
+    ) {
+        if (label.isBlank() || senderContains.isBlank()) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Name and sender text are required")
+            return
+        }
+        val policy = _uiState.value.forwardingPolicy
+        val updated =
+            policy.copy(
+                customSenders =
+                    policy.customSenders +
+                        CustomSenderRule(
+                            label = label.trim(),
+                            senderContains = senderContains.trim(),
+                            codesOnly = codesOnly,
+                        ),
+            )
+        updateForwardingPolicy(updated, hasSmsPermission)
+    }
+
+    fun removeCustomSender(index: Int, hasSmsPermission: Boolean) {
+        val policy = _uiState.value.forwardingPolicy
+        if (index !in policy.customSenders.indices) {
+            return
+        }
+        val updated =
+            policy.copy(
+                customSenders = policy.customSenders.filterIndexed { i, _ -> i != index },
+            )
+        updateForwardingPolicy(updated, hasSmsPermission)
+    }
+
+    fun startForwarding(durationSeconds: Int, hasSmsPermission: Boolean) {
+        val destinationRaw = runtime.appPreferences.trustedNumberE164
+        if (destinationRaw == null) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Set a trusted number in Settings first")
+            return
+        }
+        val destination = CanonicalPhone(destinationRaw)
+        val policy = runtime.appPreferences.forwardingPolicy
         viewModelScope.launch {
-            when (val result = runtime.engine.armTimedWindow(configId, durationSeconds)) {
+            when (
+                val result =
+                    runtime.engine.armTimedWindow(
+                        destination = destination,
+                        durationSeconds = durationSeconds,
+                        policy = policy,
+                    )
+            ) {
                 is TimedArmResult.Success -> {
-                    DiagnosticEventBus.record("UI armed timed window (${durationSeconds}s)")
+                    DiagnosticEventBus.record("UI started forwarding (${durationSeconds}s)")
                     refresh(hasSmsPermission)
                 }
                 is TimedArmResult.Rejected -> {
@@ -150,150 +207,13 @@ class KhidkiViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun updateConfiguration(
-        id: ConfigurationId,
-        label: String,
-        requesterRaw: String,
-        senderPattern: String,
-        contentPattern: String,
-        windowSeconds: Int,
-        hasSmsPermission: Boolean,
-        onCommand: (String) -> Unit,
-    ) {
-        viewModelScope.launch {
-            val existing =
-                _uiState.value.configurations.find { it.id == id }
-                    ?: run {
-                        _uiState.value = _uiState.value.copy(errorMessage = "Configuration not found")
-                        return@launch
-                    }
-            val patternError = ConfigurationValidator.validatePatterns(senderPattern, contentPattern)
-            if (patternError != null) {
-                _uiState.value = _uiState.value.copy(errorMessage = patternError)
-                return@launch
-            }
-            if (windowSeconds !in CredentialPolicy.MIN_WINDOW_SECONDS..CredentialPolicy.MAX_WINDOW_SECONDS) {
-                _uiState.value =
-                    _uiState.value.copy(
-                        errorMessage =
-                            "Window must be between ${CredentialPolicy.MIN_WINDOW_SECONDS} and " +
-                                "${CredentialPolicy.MAX_WINDOW_SECONDS} seconds",
-                    )
-                return@launch
-            }
-            val requester =
-                normalizePhone(requesterRaw)
-                    ?: run {
-                        _uiState.value = _uiState.value.copy(errorMessage = "Invalid requester number")
-                        return@launch
-                    }
-            val requesterChanged = existing.requester.e164 != requester.e164
-            val now = runtime.clock.nowMillis()
-            val updated =
-                existing.copy(
-                    label = label.ifBlank { "Config" },
-                    requester = requester,
-                    filterRules =
-                        FilterRules(
-                            senderPatterns = listOf(senderPattern),
-                            contentPatterns = listOf(contentPattern),
-                        ),
-                    rules =
-                        FilterRules(
-                            senderPatterns = listOf(senderPattern),
-                            contentPatterns = listOf(contentPattern),
-                        ),
-                    credentialPolicy =
-                        existing.credentialPolicy.copy(
-                            windowSeconds = windowSeconds,
-                        ),
-                    windowSeconds = windowSeconds,
-                    version = ConfigurationVersion(existing.version.n + 1),
-                    updatedAtMillis = now,
-                )
-            Blocking.io { container.configurationRepository.upsert(updated) }
-            if (requesterChanged) {
-                Blocking.io { container.credentialStore.revokeForConfiguration(id) }
-                val password = credentialGenerator.generate()
-                val expiresAt = now + updated.credentialPolicy.lifetimeMs
-                Blocking.io {
-                    container.credentialStore.createCredential(
-                        requester = requester,
-                        configurationId = id,
-                        password = password,
-                        createdAtMillis = now,
-                        expiresAtMillis = expiresAt,
-                    )
-                }
-                onCommand("req $password")
-            }
-            refresh(hasSmsPermission)
+    fun stopForwarding(hasSmsPermission: Boolean) {
+        val cancelled =
+            runtime.engine.cancelTimedWindow() || runtime.engine.cancelActiveWindow()
+        if (cancelled) {
+            DiagnosticEventBus.record("UI stopped forwarding")
         }
-    }
-
-    fun saveConfiguration(
-        label: String,
-        requesterRaw: String,
-        senderPattern: String,
-        contentPattern: String,
-        hasSmsPermission: Boolean,
-        onCommand: (String) -> Unit,
-    ) {
-        viewModelScope.launch {
-            val configCountError = ConfigurationValidator.validateConfigCount(_uiState.value.configurations.size)
-            if (configCountError != null) {
-                _uiState.value = _uiState.value.copy(errorMessage = configCountError)
-                return@launch
-            }
-            val patternError = ConfigurationValidator.validatePatterns(senderPattern, contentPattern)
-            if (patternError != null) {
-                _uiState.value = _uiState.value.copy(errorMessage = patternError)
-                return@launch
-            }
-            val requester = normalizePhone(requesterRaw)
-                ?: run {
-                    _uiState.value = _uiState.value.copy(errorMessage = "Invalid requester number")
-                    return@launch
-                }
-            val now = runtime.clock.nowMillis()
-            val config = Configuration(
-                id = ConfigurationId(UUID.randomUUID()),
-                version = ConfigurationVersion(1),
-                label = label.ifBlank { "Config" },
-                requester = requester,
-                filterRules = FilterRules(
-                    senderPatterns = listOf(senderPattern),
-                    contentPatterns = listOf(contentPattern),
-                ),
-                credentialPolicy = CredentialPolicy(),
-                windowSeconds = CredentialPolicy.DEFAULT_WINDOW_SECONDS,
-                enabled = true,
-                createdAtMillis = now,
-                updatedAtMillis = now,
-            )
-            Blocking.io { container.configurationRepository.upsert(config) }
-            val password = credentialGenerator.generate()
-            val expiresAt = now + config.credentialPolicy.lifetimeMs
-            Blocking.io {
-                container.credentialStore.createCredential(
-                    requester = requester,
-                    configurationId = config.id,
-                    password = password,
-                    createdAtMillis = now,
-                    expiresAtMillis = expiresAt,
-                )
-            }
-            val command = "req $password"
-            onCommand(command)
-            refresh(hasSmsPermission)
-        }
-    }
-
-    fun deleteConfiguration(id: ConfigurationId, hasSmsPermission: Boolean) {
-        viewModelScope.launch {
-            Blocking.io { container.configurationRepository.delete(id) }
-            refresh(hasSmsPermission)
-        }
+        refresh(hasSmsPermission)
     }
 
     fun clearHistory(hasSmsPermission: Boolean) {
@@ -317,9 +237,11 @@ class KhidkiViewModel(application: Application) : AndroidViewModel(application) 
         when (reason) {
             TimedArmRejectReason.CONFIGURATION_NOT_FOUND -> "Forwarding rule not found"
             TimedArmRejectReason.CONFIGURATION_DISABLED -> "Forwarding rule is disabled"
-            TimedArmRejectReason.ACTIVE_SESSION_EXISTS -> "Another forwarding window is already active"
+            TimedArmRejectReason.ACTIVE_SESSION_EXISTS -> "Forwarding is already running"
             TimedArmRejectReason.DURATION_OUT_OF_RANGE -> "Duration must be between 1 and 120 minutes"
-            TimedArmRejectReason.APP_PAUSED -> "Turn on Master forwarding first"
+            TimedArmRejectReason.APP_PAUSED -> "Forwarding is paused"
             TimedArmRejectReason.APP_NOT_READY -> "Engine is not ready"
+            TimedArmRejectReason.NO_DESTINATION -> "Set a trusted number first"
+            TimedArmRejectReason.NO_CATEGORIES_ENABLED -> "Turn on at least one message type in Rules"
         }
 }

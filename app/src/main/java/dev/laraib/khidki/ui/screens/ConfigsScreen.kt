@@ -4,22 +4,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,6 +23,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -38,511 +33,264 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.res.stringResource
-import dev.laraib.khidki.R
-import dev.laraib.khidki.domain.model.CredentialPolicy
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import dev.laraib.khidki.domain.model.Configuration
-import dev.laraib.khidki.domain.model.PhoneNormalizeResult
-import dev.laraib.khidki.domain.phone.PhoneNormalizer
-import dev.laraib.khidki.ui.ConfigurationValidator
+import dev.laraib.khidki.R
+import dev.laraib.khidki.domain.filter.ForwardingPolicy
 import dev.laraib.khidki.ui.KhidkiUiState
 import dev.laraib.khidki.ui.KhidkiViewModel
-import dev.laraib.khidki.ui.components.ConfirmDeleteDialog
-import dev.laraib.khidki.ui.components.UiUtils
-import dev.laraib.khidki.ui.theme.StatusAmber
-import dev.laraib.khidki.ui.theme.StatusGreen
-import dev.laraib.khidki.ui.theme.StatusGreenBg
-import dev.laraib.khidki.ui.theme.StatusRed
-import dev.laraib.khidki.ui.theme.StatusRedBg
+import dev.laraib.khidki.ui.components.ScreenHeader
+import dev.laraib.khidki.ui.theme.StatusTone
+import dev.laraib.khidki.ui.theme.statusToneColors
 
-private data class RegexPreset(val label: String, val pattern: String)
-
-private val senderPresets = listOf(
-    RegexPreset("All banks", "^(VK|VM|AD|QP)-.*"),
-    RegexPreset("HDFC", "HDFC"),
-    RegexPreset("SBI", "SBI"),
-    RegexPreset("ICICI", "ICICI"),
-    RegexPreset("Any", ".*"),
-)
-
-private val contentPresets = listOf(
-    RegexPreset("OTP only", "(?i)otp|\\b\\d{4,8}\\b"),
-    RegexPreset("Transactions", "(?i)debited|credited|txn"),
-    RegexPreset("All messages", ".*"),
-)
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConfigsScreen(
     state: KhidkiUiState,
     viewModel: KhidkiViewModel,
-    onCommandRevealed: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val hasSmsPermission = state.hasSmsPermission
-    var showAddSheet by remember { mutableStateOf(false) }
-    var editingConfig by remember { mutableStateOf<Configuration?>(null) }
-    var pendingDelete by remember { mutableStateOf<Configuration?>(null) }
+    var showAddSender by remember { mutableStateOf(false) }
+    val policy = state.forwardingPolicy
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 4.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 4.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = stringResource(R.string.rules_title, state.configurations.size),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            ScreenHeader(
+                title = stringResource(R.string.rules_what_to_forward),
+                subtitle = stringResource(
+                    R.string.rules_summary,
+                    policy.enabledCategoryCount(),
+                    policy.customSenders.size,
+                ),
             )
-            if (state.configurations.isEmpty()) {
+            if (!policy.hasAnyEnabled()) {
+                val (accent, background) = statusToneColors(StatusTone.Warning)
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = background),
                 ) {
                     Text(
-                        text = stringResource(R.string.rules_empty),
+                        text = stringResource(R.string.rules_none_enabled),
                         modifier = Modifier.padding(16.dp),
                         style = MaterialTheme.typography.bodyMedium,
+                        color = accent,
                     )
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                        start = 12.dp,
-                        end = 12.dp,
-                        bottom = 88.dp,
-                    ),
-                ) {
-                    items(state.configurations, key = { it.id.uuid }) { config ->
-                        ConfigRuleCard(
-                            config = config,
-                            onEdit = { editingConfig = config },
-                            onDelete = { pendingDelete = config },
-                            onEnabledChange = { enabled ->
-                                viewModel.setConfigurationEnabled(config.id, enabled, hasSmsPermission)
-                            },
-                        )
+            }
+            CategorySection(title = stringResource(R.string.rules_otp_section)) {
+                CategoryToggle(
+                    label = stringResource(R.string.rules_otp_shopping),
+                    checked = policy.otpShopping,
+                    onCheckedChange = { enabled ->
+                        viewModel.toggleCategory({ p -> p.copy(otpShopping = enabled) }, hasSmsPermission)
+                    },
+                )
+                CategoryToggle(
+                    label = stringResource(R.string.rules_otp_banks),
+                    checked = policy.otpBanks,
+                    onCheckedChange = { enabled ->
+                        viewModel.toggleCategory({ p -> p.copy(otpBanks = enabled) }, hasSmsPermission)
+                    },
+                )
+                CategoryToggle(
+                    label = stringResource(R.string.rules_otp_upi),
+                    checked = policy.otpUpi,
+                    onCheckedChange = { enabled ->
+                        viewModel.toggleCategory({ p -> p.copy(otpUpi = enabled) }, hasSmsPermission)
+                    },
+                )
+                CategoryToggle(
+                    label = stringResource(R.string.rules_otp_government),
+                    checked = policy.otpGovernment,
+                    onCheckedChange = { enabled ->
+                        viewModel.toggleCategory({ p -> p.copy(otpGovernment = enabled) }, hasSmsPermission)
+                    },
+                )
+                CategoryToggle(
+                    label = stringResource(R.string.rules_otp_other),
+                    checked = policy.otpOther,
+                    onCheckedChange = { enabled ->
+                        viewModel.toggleCategory({ p -> p.copy(otpOther = enabled) }, hasSmsPermission)
+                    },
+                )
+            }
+            CategorySection(title = stringResource(R.string.rules_alerts_section)) {
+                CategoryToggle(
+                    label = stringResource(R.string.rules_alert_bank),
+                    checked = policy.alertBank,
+                    onCheckedChange = { enabled ->
+                        viewModel.toggleCategory({ p -> p.copy(alertBank = enabled) }, hasSmsPermission)
+                    },
+                )
+                CategoryToggle(
+                    label = stringResource(R.string.rules_alert_order),
+                    checked = policy.alertOrder,
+                    onCheckedChange = { enabled ->
+                        viewModel.toggleCategory({ p -> p.copy(alertOrder = enabled) }, hasSmsPermission)
+                    },
+                )
+            }
+            CategorySection(title = stringResource(R.string.rules_catchall_section)) {
+                CategoryToggle(
+                    label = stringResource(R.string.rules_all_sms),
+                    checked = policy.allSms,
+                    onCheckedChange = { enabled ->
+                        viewModel.toggleCategory({ p -> p.copy(allSms = enabled) }, hasSmsPermission)
+                    },
+                )
+                if (policy.customSenders.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.rules_custom_empty),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                } else {
+                    policy.customSenders.forEachIndexed { index, sender ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(text = sender.label, style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    text = stringResource(
+                                        R.string.rules_custom_sender_hint,
+                                        sender.senderContains,
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            IconButton(onClick = { viewModel.removeCustomSender(index, hasSmsPermission) }) {
+                                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.rules_remove_sender))
+                            }
+                        }
                     }
                 }
             }
         }
-
         FloatingActionButton(
-            onClick = { showAddSheet = true },
+            onClick = { showAddSender = true },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp),
         ) {
-            Icon(Icons.Default.Add, contentDescription = "Add rule")
+            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.rules_add_sender))
         }
     }
 
-    editingConfig?.let { config ->
-        EditRuleBottomSheet(
-            config = config,
-            errorMessage = state.errorMessage,
-            hasSmsPermission = hasSmsPermission,
-            onDismiss = { editingConfig = null },
-            onSave = { label, requester, sender, content, windowSeconds ->
-                viewModel.updateConfiguration(
-                    id = config.id,
-                    label = label,
-                    requesterRaw = requester,
-                    senderPattern = sender,
-                    contentPattern = content,
-                    windowSeconds = windowSeconds,
-                    hasSmsPermission = hasSmsPermission,
-                    onCommand = { command ->
-                        editingConfig = null
-                        onCommandRevealed(command)
-                    },
-                )
+    if (showAddSender) {
+        AddSenderSheet(
+            onDismiss = { showAddSender = false },
+            onSave = { label, contains, codesOnly ->
+                viewModel.addCustomSender(label, contains, codesOnly, hasSmsPermission)
+                showAddSender = false
             },
-        )
-    }
-
-    if (showAddSheet) {
-        AddRuleBottomSheet(
-            configCount = state.configurations.size,
-            errorMessage = state.errorMessage,
-            hasSmsPermission = hasSmsPermission,
-            onDismiss = { showAddSheet = false },
-            onSave = { label, requester, sender, content ->
-                viewModel.saveConfiguration(label, requester, sender, content, hasSmsPermission) { command ->
-                    showAddSheet = false
-                    onCommandRevealed(command)
-                }
-            },
-        )
-    }
-
-    pendingDelete?.let { config ->
-        ConfirmDeleteDialog(
-            ruleLabel = config.label,
-            onConfirm = {
-                viewModel.deleteConfiguration(config.id, hasSmsPermission)
-                pendingDelete = null
-            },
-            onDismiss = { pendingDelete = null },
         )
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ConfigRuleCard(
-    config: Configuration,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onEnabledChange: (Boolean) -> Unit,
+private fun CategorySection(
+    title: String,
+    content: @Composable () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(config.label, style = MaterialTheme.typography.titleMedium)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Switch(
-                        checked = config.enabled,
-                        onCheckedChange = onEnabledChange,
-                    )
-                    IconButton(onClick = onEdit) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit rule")
-                    }
-                    IconButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete rule")
-                    }
-                }
-            }
+        Column(modifier = Modifier.padding(vertical = 8.dp)) {
             Text(
-                text = UiUtils.maskPhoneNumber(config.requester.e164),
-                style = MaterialTheme.typography.bodyMedium,
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                config.filterRules.senderPatterns.forEach { pattern ->
-                    AssistChip(
-                        onClick = {},
-                        label = { Text(truncatePattern(pattern)) },
-                        enabled = false,
-                    )
-                }
-                config.filterRules.contentPatterns.forEach { pattern ->
-                    AssistChip(
-                        onClick = {},
-                        label = { Text(truncatePattern(pattern)) },
-                        enabled = false,
-                    )
-                }
-            }
-            Text(
-                text = "${config.windowSeconds / 60} min window",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            content()
         }
     }
 }
 
-private fun truncatePattern(pattern: String): String =
-    if (pattern.length <= 24) pattern else pattern.take(21) + "..."
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-private fun EditRuleBottomSheet(
-    config: Configuration,
-    errorMessage: String?,
-    hasSmsPermission: Boolean,
-    onDismiss: () -> Unit,
-    onSave: (label: String, requester: String, sender: String, content: String, windowSeconds: Int) -> Unit,
+private fun CategoryToggle(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var label by remember(config.id) { mutableStateOf(config.label) }
-    var requester by remember(config.id) { mutableStateOf(config.requester.e164) }
-    var sender by remember(config.id) { mutableStateOf(config.filterRules.senderPatterns.firstOrNull() ?: "") }
-    var content by remember(config.id) { mutableStateOf(config.filterRules.contentPatterns.firstOrNull() ?: "") }
-    var windowMinutes by remember(config.id) {
-        mutableStateOf((config.windowSeconds / 60).coerceAtLeast(1).toString())
-    }
-    val phoneNormalizer = remember { PhoneNormalizer() }
-    val phoneValid = remember(requester) {
-        when (phoneNormalizer.normalize(requester)) {
-            is PhoneNormalizeResult.Success -> true
-            else -> requester.isBlank()
-        }
-    }
-    val patternError = remember(sender, content) {
-        ConfigurationValidator.validatePatterns(sender, content)
-    }
-    val windowSeconds = windowMinutes.toIntOrNull()?.times(60)
-    val windowValid =
-        windowSeconds != null &&
-            windowSeconds in CredentialPolicy.MIN_WINDOW_SECONDS..CredentialPolicy.MAX_WINDOW_SECONDS
-    val requesterChanged = remember(requester, config.requester.e164) {
-        phoneNormalizer.normalize(requester).let { result ->
-            result is PhoneNormalizeResult.Success && result.phone.e164 != config.requester.e164
-        }
-    }
-    val canSave =
-        label.isNotBlank() &&
-            requester.isNotBlank() &&
-            phoneValid &&
-            patternError == null &&
-            windowValid
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(stringResource(R.string.edit_rule_title), style = MaterialTheme.typography.titleLarge)
-            OutlinedTextField(
-                value = label,
-                onValueChange = { label = it },
-                label = { Text("Label") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-            )
-            OutlinedTextField(
-                value = requester,
-                onValueChange = { requester = it },
-                label = { Text("Requester phone") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                supportingText = {
-                    if (requesterChanged) {
-                        Text(
-                            "Changing the number voids credentials and generates a new access code",
-                            color = StatusAmber,
-                        )
-                    }
-                },
-            )
-            OutlinedTextField(
-                value = sender,
-                onValueChange = { sender = it },
-                label = { Text("Sender filter (regex)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-            )
-            OutlinedTextField(
-                value = content,
-                onValueChange = { content = it },
-                label = { Text("Content filter (regex)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-            )
-            OutlinedTextField(
-                value = windowMinutes,
-                onValueChange = { windowMinutes = it.filter { ch -> ch.isDigit() } },
-                label = { Text("Req window (minutes)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                supportingText = {
-                    Text(
-                        "Used for req SMS ack window (${CredentialPolicy.MIN_WINDOW_SECONDS / 60}–" +
-                            "${CredentialPolicy.MAX_WINDOW_SECONDS / 60} min)",
-                    )
-                },
-            )
-            ValidationBanner(patternError = patternError, atLimit = false)
-            if (!windowValid) {
-                Text(
-                    "Window must be ${CredentialPolicy.MIN_WINDOW_SECONDS / 60}–" +
-                        "${CredentialPolicy.MAX_WINDOW_SECONDS / 60} minutes",
-                    color = StatusRed,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            errorMessage?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-            }
-            TextButton(
-                onClick = {
-                    val seconds = windowSeconds ?: return@TextButton
-                    onSave(label, requester, sender, content, seconds)
-                },
-                enabled = canSave,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    if (requesterChanged) {
-                        stringResource(R.string.edit_rule_save_regenerate)
-                    } else {
-                        stringResource(R.string.edit_rule_save)
-                    },
-                )
-            }
-        }
+        Text(text = label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddRuleBottomSheet(
-    configCount: Int,
-    errorMessage: String?,
-    hasSmsPermission: Boolean,
+private fun AddSenderSheet(
     onDismiss: () -> Unit,
-    onSave: (label: String, requester: String, sender: String, content: String) -> Unit,
+    onSave: (label: String, senderContains: String, codesOnly: Boolean) -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var label by remember { mutableStateOf("") }
-    var requester by remember { mutableStateOf("") }
-    var sender by remember { mutableStateOf("^(VK|VM|AD|QP)-.*") }
-    var content by remember { mutableStateOf("(?i)otp|\\b\\d{4,8}\\b") }
-    val phoneNormalizer = remember { PhoneNormalizer() }
-    val phoneValid = remember(requester) {
-        when (phoneNormalizer.normalize(requester)) {
-            is PhoneNormalizeResult.Success -> true
-            else -> requester.isBlank()
-        }
-    }
-    val patternError = remember(sender, content) {
-        ConfigurationValidator.validatePatterns(sender, content)
-    }
-    val atLimit = configCount >= 20
-    val canSave = !atLimit &&
-        label.isNotBlank() &&
-        requester.isNotBlank() &&
-        phoneValid &&
-        patternError == null
+    var senderContains by remember { mutableStateOf("") }
+    var codesOnly by remember { mutableStateOf(true) }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-    ) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 24.dp)
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("New forwarding rule", style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = stringResource(R.string.rules_add_sender_title),
+                style = MaterialTheme.typography.titleLarge,
+            )
             OutlinedTextField(
                 value = label,
                 onValueChange = { label = it },
-                label = { Text("Label") },
-                placeholder = { Text("e.g. HDFC NetBanking") },
+                label = { Text(stringResource(R.string.rules_sender_name)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
             )
             OutlinedTextField(
-                value = requester,
-                onValueChange = { requester = it },
-                label = { Text("Requester phone") },
-                placeholder = { Text("+919876543210") },
+                value = senderContains,
+                onValueChange = { senderContains = it },
+                label = { Text(stringResource(R.string.rules_sender_contains)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                supportingText = {
-                    when {
-                        requester.isBlank() -> Text("E.164 format required")
-                        phoneValid -> Text("Valid phone number")
-                        else -> Text("Invalid phone number", color = StatusRed)
-                    }
-                },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
             )
-            OutlinedTextField(
-                value = sender,
-                onValueChange = { sender = it },
-                label = { Text("Sender filter (regex)") },
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-            )
-            Text("Sender presets", style = MaterialTheme.typography.labelMedium)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                senderPresets.forEach { preset ->
-                    AssistChip(
-                        onClick = { sender = preset.pattern },
-                        label = { Text(preset.label) },
-                    )
-                }
-            }
-            OutlinedTextField(
-                value = content,
-                onValueChange = { content = it },
-                label = { Text("Content filter (regex)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-            )
-            Text("Content presets", style = MaterialTheme.typography.labelMedium)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                contentPresets.forEach { preset ->
-                    AssistChip(
-                        onClick = { content = preset.pattern },
-                        label = { Text(preset.label) },
-                    )
-                }
-            }
-            ValidationBanner(patternError = patternError, atLimit = atLimit)
-            errorMessage?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(stringResource(R.string.rules_codes_only))
+                Switch(checked = codesOnly, onCheckedChange = { codesOnly = it })
             }
             TextButton(
-                onClick = { onSave(label, requester, sender, content) },
-                enabled = canSave,
+                onClick = { onSave(label, senderContains, codesOnly) },
                 modifier = Modifier.fillMaxWidth(),
+                enabled = label.isNotBlank() && senderContains.isNotBlank(),
             ) {
-                Text("Save & generate access code")
-            }
-        }
-    }
-}
-
-@Composable
-private fun ValidationBanner(patternError: String?, atLimit: Boolean) {
-    when {
-        atLimit -> {
-            Card(colors = CardDefaults.cardColors(containerColor = StatusRedBg)) {
-                Text(
-                    text = "Maximum 20 configurations allowed",
-                    modifier = Modifier.padding(12.dp),
-                    color = StatusRed,
-                )
-            }
-        }
-        patternError == null -> {
-            Card(colors = CardDefaults.cardColors(containerColor = StatusGreenBg)) {
-                Text(
-                    text = "Regex patterns valid",
-                    modifier = Modifier.padding(12.dp),
-                    color = StatusGreen,
-                )
-            }
-        }
-        else -> {
-            Card(colors = CardDefaults.cardColors(containerColor = StatusRedBg)) {
-                Text(
-                    text = patternError,
-                    modifier = Modifier.padding(12.dp),
-                    color = StatusRed,
-                )
+                Text(stringResource(R.string.rules_save_sender))
             }
         }
     }

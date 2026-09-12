@@ -1,5 +1,6 @@
 package dev.laraib.khidki.domain.model
 
+import dev.laraib.khidki.domain.filter.ForwardingPolicy
 import java.util.UUID
 
 @JvmInline
@@ -140,6 +141,7 @@ data class AuthorizationSession(
     val forwarded: Boolean = false,
     val origin: SessionOrigin = SessionOrigin.REQUEST,
     val forwardCount: Int = 0,
+    val forwardingPolicy: ForwardingPolicy = ForwardingPolicy(),
 ) {
     val isActive: Boolean
         get() = when (origin) {
@@ -360,4 +362,6 @@ enum class TimedArmRejectReason {
     DURATION_OUT_OF_RANGE,
     APP_PAUSED,
     APP_NOT_READY,
+    NO_DESTINATION,
+    NO_CATEGORIES_ENABLED,
 }

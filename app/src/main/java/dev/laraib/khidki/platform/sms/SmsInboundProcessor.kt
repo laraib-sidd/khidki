@@ -1,10 +1,5 @@
 package dev.laraib.khidki.platform.sms
 
-import dev.laraib.khidki.domain.model.CanonicalPhone
-import dev.laraib.khidki.domain.model.CommandParseResult
-import dev.laraib.khidki.domain.model.PhoneNormalizeResult
-import dev.laraib.khidki.domain.phone.PhoneNormalizer
-import dev.laraib.khidki.domain.protocol.RequestParser
 import dev.laraib.khidki.data.adapter.Blocking
 import dev.laraib.khidki.data.repository.RoomDuplicateFingerprintStore
 import dev.laraib.khidki.domain.model.CandidateHandleResult
@@ -15,8 +10,6 @@ class SmsInboundProcessor(
     private val engine: ForwardingEngine,
     private val duplicateFingerprintStore: RoomDuplicateFingerprintStore? = null,
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
-    private val phoneNormalizer: PhoneNormalizer = PhoneNormalizer(),
-    private val requestParser: RequestParser = RequestParser,
 ) {
     fun process(
         sender: String,
@@ -35,27 +28,14 @@ class SmsInboundProcessor(
 
         DiagnosticEventBus.record("IN from ${maskSender(sender)} (${body.length} chars)")
 
-        when (val parsed = requestParser.parse(body)) {
-            is CommandParseResult.Success -> {
-                val requester = normalizeSender(sender) ?: run {
-                    DiagnosticEventBus.record("DROP command: invalid sender ${maskSender(sender)}")
-                    return
-                }
-                val result = engine.handleCommand(requester, parsed.password)
-                DiagnosticEventBus.record("CMD result: ${result::class.simpleName}")
-            }
-
-            is CommandParseResult.Reject -> {
-                if (isDuplicateCandidate(sender, body, receivedAtMillis, subscriptionId)) {
-                    DiagnosticEventBus.record("DROP duplicate fingerprint from ${maskSender(sender)}")
-                    return
-                }
-                val result = engine.handleCandidate(sender, body, receivedAtMillis)
-                DiagnosticEventBus.record("CANDIDATE result: ${result::class.simpleName}")
-                if (result is CandidateHandleResult.Forwarded) {
-                    recordFingerprint(sender, body, receivedAtMillis, subscriptionId, result.session.id)
-                }
-            }
+        if (isDuplicateCandidate(sender, body, receivedAtMillis, subscriptionId)) {
+            DiagnosticEventBus.record("DROP duplicate fingerprint from ${maskSender(sender)}")
+            return
+        }
+        val result = engine.handleCandidate(sender, body, receivedAtMillis)
+        DiagnosticEventBus.record("CANDIDATE result: ${result::class.simpleName}")
+        if (result is CandidateHandleResult.Forwarded) {
+            recordFingerprint(sender, body, receivedAtMillis, subscriptionId, result.session.id)
         }
     }
 
@@ -66,12 +46,6 @@ class SmsInboundProcessor(
         }
         return digits.takeLast(4).let { "••••$it" }
     }
-
-    private fun normalizeSender(sender: String): CanonicalPhone? =
-        when (val result = phoneNormalizer.normalize(sender)) {
-            is PhoneNormalizeResult.Success -> result.phone
-            else -> null
-        }
 
     private fun isDuplicateCandidate(
         sender: String,

@@ -38,4 +38,5 @@ data class SessionEntity(
     val credentialId: String? = null,
     val origin: String = "REQUEST",
     val forwardCount: Int = 0,
+    val forwardingPolicyJson: String = "{}",
 )

@@ -28,6 +28,7 @@ import dev.laraib.khidki.domain.model.HistoryEvent
 import dev.laraib.khidki.domain.model.HistoryEventType
 import dev.laraib.khidki.ui.KhidkiUiState
 import dev.laraib.khidki.ui.KhidkiViewModel
+import dev.laraib.khidki.ui.components.EmptyStateCard
 import dev.laraib.khidki.ui.components.UiUtils
 import androidx.compose.ui.res.stringResource
 import dev.laraib.khidki.R
@@ -38,6 +39,7 @@ import dev.laraib.khidki.ui.theme.statusToneColors
 fun HistoryScreen(
     state: KhidkiUiState,
     viewModel: KhidkiViewModel,
+    onOpenHome: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val hasSmsPermission = state.hasSmsPermission
@@ -68,17 +70,12 @@ fun HistoryScreen(
         }
 
         if (state.history.isEmpty()) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.history_empty),
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
+            EmptyStateCard(
+                message = stringResource(R.string.history_empty),
+                actionLabel = stringResource(R.string.history_empty_action),
+                onAction = onOpenHome,
+                modifier = Modifier.padding(12.dp),
+            )
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),

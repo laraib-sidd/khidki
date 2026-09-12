@@ -10,14 +10,19 @@
 
     <!-- Welcome -->
     <string name="welcome_title">Welcome to Khidki</string>
-    <string name="welcome_step1_title">OTP forwarding, on your phone</string>
-    <string name="welcome_step1_body">Khidki forwards matching OTP SMS to a trusted number — only during a window you control. Nothing leaves your device except SMS you choose to forward.</string>
-    <string name="welcome_step2_title">SMS only — not chat</string>
-    <string name="welcome_step2_body">Khidki reads SMS, not RCS or in-app chat. Bank and delivery OTPs that arrive as SMS work. Messages in Google Messages RCS chats do not.</string>
-    <string name="welcome_step3_title">Quick setup</string>
-    <string name="welcome_step3_body">Android may require extra steps before SMS access works. We will guide you through permissions next.</string>
+    <string name="welcome_step1_title">Forward OTPs you choose</string>
+    <string name="welcome_step1_body">Khidki forwards matching SMS to one trusted number — only while a window you start is open. Nothing leaves your phone except messages you allow.</string>
+    <string name="welcome_step2_title">Trusted number</string>
+    <string name="welcome_step2_body">Who should receive forwarded codes? Use their mobile number with country code.</string>
+    <string name="welcome_trusted_number">Trusted number</string>
+    <string name="welcome_step3_title">What to forward</string>
+    <string name="welcome_step3_body">Turn on the message types you want. You can change these anytime on the Rules tab.</string>
+    <string name="welcome_step4_title">Permissions</string>
+    <string name="welcome_step4_body">Khidki needs SMS access to read and forward messages. Android may also ask you to allow restricted settings — we will guide you on the Home screen.</string>
     <string name="welcome_continue">Continue</string>
     <string name="welcome_get_started">Get started</string>
+    <string name="welcome_skip">Skip for now</string>
+    <string name="welcome_number_placeholder">+91 98765 43210</string>
 
     <!-- Permissions -->
     <string name="setup_required_title">Setup required</string>
@@ -25,84 +30,82 @@
     <string name="open_app_info">Open App Info</string>
     <string name="grant_permissions">Grant permissions</string>
 
-    <!-- Home / status -->
-    <string name="forwarding_on">On</string>
-    <string name="forwarding_off">Off</string>
-    <string name="setup_needed">Setup needed</string>
-    <string name="forwarding_on_subtitle">Listening for forwarding windows.</string>
-    <string name="forwarding_off_subtitle">Turn on to listen for forwarding windows.</string>
-    <string name="setup_needed_subtitle">Grant SMS access to use Khidki.</string>
-    <string name="waiting_for_window">Waiting for a window to be armed.</string>
-    <string name="window_active_subtitle">A forwarding window is open.</string>
-    <string name="forwarding_switch_label">Forwarding</string>
-    <string name="forwarding_switch_hint">When on, Khidki evaluates incoming SMS against your rules.</string>
-    <string name="no_active_window">No active window. Arm timed forwarding above, or have the requester send a req command by SMS.</string>
+    <!-- Home -->
+    <string name="home_screen_title">Home</string>
+    <string name="home_screen_subtitle">Start a window to forward matching SMS to your trusted number.</string>
+    <string name="home_status_active">Live</string>
+    <string name="home_check_permissions">Grant SMS permissions</string>
+    <string name="home_check_number">Add trusted number</string>
+    <string name="home_check_categories">Choose message types</string>
+    <string name="home_start_hint">Complete the steps above to start forwarding.</string>
+    <string name="home_start_title">Start forwarding</string>
+    <string name="home_start_button">Start forwarding</string>
+    <string name="home_stop_button">Stop</string>
+    <string name="home_active_title">Forwarding</string>
+    <string name="home_duration_label">How long?</string>
+    <string name="home_forward_to">To %1$s</string>
+    <string name="home_setup_permissions">Grant SMS permissions to start.</string>
+    <string name="home_setup_number">Add a trusted number in Settings first.</string>
     <string name="recent_activity_title">Recent activity</string>
-    <string name="recent_activity_empty">No activity yet. Arm a window or receive an SMS to see events here.</string>
+    <string name="recent_activity_empty">No activity yet. Start forwarding to see recent events.</string>
     <string name="show_technical_details">Show technical details</string>
     <string name="hide_technical_details">Hide technical details</string>
     <string name="clear_activity">Clear activity</string>
     <string name="copy_activity_log">Copy log</string>
     <string name="activity_log_copied">Activity log copied</string>
-    <string name="cancel_active_window">Stop window</string>
-    <string name="timed_window_title">Timed window: %1$s</string>
-    <string name="sms_window_title">SMS window: %1$s</string>
-    <string name="time_remaining">%1$02d:%2$02d remaining</string>
-    <string name="messages_forwarded">%1$d message(s) forwarded</string>
-
-    <!-- Timed forwarding -->
-    <string name="timed_forwarding_title">Timed forwarding</string>
-    <string name="timed_forwarding_subtitle">Open a window without sending a req SMS. Requires your device unlock.</string>
-    <string name="timed_forwarding_no_config">Create a forwarding rule on the Rules tab first.</string>
-    <string name="timed_forwarding_active_hint">Timed window is active — see the card below.</string>
-    <string name="timed_forwarding_blocked_active_session">Another forwarding window is already active.</string>
-    <string name="timed_forwarding_config_label">Forwarding rule</string>
-    <string name="timed_forwarding_duration_label">Duration</string>
-    <string name="timed_forwarding_arm_button">Arm timed forwarding</string>
-    <string name="timed_forwarding_sms_required">Grant SMS permissions before arming.</string>
-    <string name="timed_forwarding_credential_title">Confirm timed forwarding</string>
-    <string name="timed_forwarding_credential_subtitle">Use your device PIN, pattern, or biometrics.</string>
-    <string name="timed_forwarding_master_off">Turn on Forwarding first.</string>
-    <string name="timed_forwarding_no_credential">Set a screen lock to use timed forwarding.</string>
-    <string name="timed_forwarding_auth_cancelled">Authentication cancelled</string>
+    <string name="messages_forwarded">%1$d message(s) sent</string>
 
     <!-- Rules -->
-    <string name="rules_title">Forwarding rules (%1$d/20)</string>
-    <string name="rules_empty">No forwarding rules yet. Tap + to create your first rule.</string>
-    <string name="rule_active">Active</string>
-    <string name="rule_disabled">Disabled</string>
-    <string name="rule_enable">Enable rule</string>
-    <string name="edit_rule_title">Edit forwarding rule</string>
-    <string name="edit_rule_save">Save changes</string>
-    <string name="edit_rule_save_regenerate">Save &amp; regenerate access code</string>
-    <string name="add_rule_title">New forwarding rule</string>
-    <string name="add_rule_save">Save &amp; generate access code</string>
-
-    <!-- Command dialog -->
-    <string name="command_dialog_title">Access command ready</string>
-    <string name="command_dialog_body">Share this command with the requester once. The password is only shown here.</string>
-    <string name="command_copy">Copy command</string>
-    <string name="command_copied">Command copied</string>
-    <string name="command_dismiss">Done</string>
+    <string name="rules_what_to_forward">What to forward</string>
+    <string name="rules_summary">%1$d categories on · %2$d custom senders</string>
+    <string name="rules_none_enabled">Turn on at least one category, or forwarding will not send anything.</string>
+    <string name="rules_otp_section">One-time codes</string>
+    <string name="rules_otp_shopping">Shopping and food</string>
+    <string name="rules_otp_banks">Banks and cards</string>
+    <string name="rules_otp_upi">UPI and wallets</string>
+    <string name="rules_otp_government">Government (EPF, tax, Aadhaar)</string>
+    <string name="rules_otp_other">Any other code</string>
+    <string name="rules_alerts_section">Alerts (no login code)</string>
+    <string name="rules_alert_bank">Bank debit / credit</string>
+    <string name="rules_alert_order">Order / delivery updates</string>
+    <string name="rules_catchall_section">Catch-all</string>
+    <string name="rules_all_sms">All SMS this window</string>
+    <string name="rules_custom_empty">Add a sender name to forward codes from a specific sender.</string>
+    <string name="rules_custom_sender_hint">Sender contains: %1$s</string>
+    <string name="rules_add_sender">Add sender</string>
+    <string name="rules_remove_sender">Remove sender</string>
+    <string name="rules_add_sender_title">Add a sender</string>
+    <string name="rules_sender_name">Name</string>
+    <string name="rules_sender_contains">Sender contains</string>
+    <string name="rules_codes_only">Codes only</string>
+    <string name="rules_save_sender">Save sender</string>
 
     <!-- History -->
     <string name="history_title">History (%1$d)</string>
-    <string name="history_empty">Events appear when windows arm, messages forward, or attempts are blocked.</string>
+    <string name="history_empty">Nothing here yet. Start forwarding on Home to see when messages are sent.</string>
+    <string name="history_empty_action">Go to Home</string>
     <string name="history_clear">Clear history</string>
     <string name="history_clear_confirm_title">Clear history?</string>
     <string name="history_clear_confirm_body">This removes all stored audit events from this device. It cannot be undone.</string>
 
     <!-- Settings -->
+    <string name="settings_trusted_number_title">Trusted number</string>
+    <string name="settings_trusted_number_body">OTPs forward to this number while a window is open.</string>
+    <string name="settings_trusted_number_label">Phone number</string>
+    <string name="settings_trusted_number_save">Save number</string>
     <string name="settings_permissions_title">Permissions &amp; device</string>
     <string name="settings_sms_granted">SMS: Granted</string>
     <string name="settings_sms_denied">SMS: Required</string>
     <string name="settings_notifications_granted">Notifications: Granted</string>
-    <string name="settings_notifications_denied">Notifications: Recommended — alerts when windows open or messages forward</string>
+    <string name="settings_notifications_denied">Notifications: Recommended — alerts when forwarding is active</string>
     <string name="settings_realme_tips">Realme / ColorOS: set Battery to Unrestricted and enable Auto-start so SMS forwarding works in the background.</string>
     <string name="settings_privacy_title">Privacy</string>
-    <string name="settings_privacy_body">Khidki runs entirely on your phone. No analytics, no cloud, no internet permission. Passwords and message bodies are not stored in history.</string>
+    <string name="settings_privacy_body">Khidki runs entirely on your phone. No analytics, no cloud, no internet permission. Message bodies are not stored in history.</string>
     <string name="settings_privacy_risk">You choose to forward full SMS content to a number you configure. SMS charges may apply.</string>
     <string name="settings_security_title">Security</string>
+    <string name="settings_security_no_internet">No internet permission — data stays on device</string>
+    <string name="settings_security_local">Forwarding only while you start a window</string>
+    <string name="settings_security_window">Category filters limit what gets forwarded</string>
     <string name="settings_advanced_title">Advanced</string>
     <string name="settings_advanced_unlock_hint">Tap version 3 times to unlock advanced tools.</string>
     <string name="settings_regex_tester_title">Filter tester</string>
@@ -113,6 +116,8 @@
     <string name="settings_about_tagline">Personal SMS forwarding — install updates from GitHub Releases.</string>
     <string name="settings_about_safety">Never use live bank OTPs when testing.</string>
 
-    <!-- Snackbar -->
+    <!-- Legacy / shared -->
+    <string name="setup_needed">Setup needed</string>
+    <string name="setup_needed_subtitle">Grant SMS access to use Khidki.</string>
     <string name="auth_cancelled">Authentication cancelled</string>
 </resources>

@@ -8,12 +8,17 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
@@ -48,7 +53,6 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import dev.laraib.khidki.R
 import dev.laraib.khidki.platform.permission.PermissionGate
-import dev.laraib.khidki.ui.components.CommandRevealDialog
 import dev.laraib.khidki.ui.components.PermissionPreflightCard
 import dev.laraib.khidki.ui.components.WelcomeSheet
 import dev.laraib.khidki.ui.screens.ConfigsScreen
@@ -56,6 +60,8 @@ import dev.laraib.khidki.ui.screens.HistoryScreen
 import dev.laraib.khidki.ui.screens.SettingsScreen
 import dev.laraib.khidki.ui.screens.StatusScreen
 import dev.laraib.khidki.ui.theme.KhidkiTheme
+import dev.laraib.khidki.ui.theme.StatusTone
+import dev.laraib.khidki.ui.theme.statusToneColors
 import kotlinx.coroutines.launch
 
 class MainActivity : FragmentActivity() {
@@ -75,7 +81,6 @@ class MainActivity : FragmentActivity() {
             KhidkiTheme {
                 KhidkiAppScreen(
                     viewModel = viewModel,
-                    hostActivity = this,
                     onOpenAppInfo = { openAppInfo() },
                     onRequestPermissions = { requestRuntimePermissions() },
                 )
@@ -113,17 +118,16 @@ class MainActivity : FragmentActivity() {
 @Composable
 private fun KhidkiAppScreen(
     viewModel: KhidkiViewModel,
-    hostActivity: FragmentActivity,
     onOpenAppInfo: () -> Unit,
     onRequestPermissions: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
     val diagnosticEvents by viewModel.diagnosticEvents.collectAsState()
     var tab by rememberSaveable { mutableIntStateOf(0) }
-    var revealedCommand by remember { mutableStateOf<String?>(null) }
     var showWelcome by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val isForwardingActive = state.activeSession?.isActive == true
 
     LaunchedEffect(state.welcomeCompleted) {
         showWelcome = !state.welcomeCompleted
@@ -148,7 +152,7 @@ private fun KhidkiAppScreen(
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Image(
                             painter = painterResource(R.drawable.ic_khidki_mark),
@@ -156,6 +160,11 @@ private fun KhidkiAppScreen(
                             modifier = Modifier.size(24.dp),
                         )
                         Text(stringResource(R.string.app_name))
+                    }
+                },
+                actions = {
+                    if (isForwardingActive) {
+                        ForwardingStatusPill()
                     }
                 },
             )
@@ -196,7 +205,7 @@ private fun KhidkiAppScreen(
                 .fillMaxSize()
                 .padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
-            if (!state.hasSmsPermission) {
+            if (!state.hasSmsPermission && tab == 0) {
                 PermissionPreflightCard(
                     steps = PermissionGate.setupSteps(),
                     onOpenAppInfo = onOpenAppInfo,
@@ -204,30 +213,33 @@ private fun KhidkiAppScreen(
                     modifier = Modifier.padding(bottom = 8.dp),
                 )
             }
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = 640.dp),
+                contentAlignment = Alignment.TopCenter,
+            ) {
                 when (tab) {
                     0 -> StatusScreen(
                         state = state,
                         viewModel = viewModel,
-                        hostActivity = hostActivity,
                         diagnosticEvents = diagnosticEvents,
-                        onAuthCancelled = {
-                            scope.launch {
-                                snackbarHostState.showSnackbar(hostActivity.getString(R.string.auth_cancelled))
-                            }
-                        },
+                        onOpenSettings = { tab = 3 },
+                        onOpenRules = { tab = 1 },
+                        onRequestPermissions = onRequestPermissions,
                     )
                     1 -> ConfigsScreen(
                         state = state,
                         viewModel = viewModel,
-                        onCommandRevealed = { revealedCommand = it },
                     )
                     2 -> HistoryScreen(
                         state = state,
                         viewModel = viewModel,
+                        onOpenHome = { tab = 0 },
                     )
                     3 -> SettingsScreen(
                         state = state,
+                        viewModel = viewModel,
                         onOpenAppInfo = onOpenAppInfo,
                         onUnlockAdvanced = { viewModel.unlockAdvanced() },
                     )
@@ -238,21 +250,27 @@ private fun KhidkiAppScreen(
 
     if (showWelcome) {
         WelcomeSheet(
-            onComplete = {
-                viewModel.completeWelcome()
+            onComplete = { trustedNumber, policy ->
+                viewModel.completeWelcome(trustedNumber, policy)
                 showWelcome = false
             },
             onDismiss = {
-                viewModel.completeWelcome()
                 showWelcome = false
             },
         )
     }
+}
 
-    revealedCommand?.let { command ->
-        CommandRevealDialog(
-            command = command,
-            onDismiss = { revealedCommand = null },
-        )
-    }
+@Composable
+private fun ForwardingStatusPill() {
+    val (accent, background) = statusToneColors(StatusTone.Success)
+    Text(
+        text = stringResource(R.string.home_status_active),
+        modifier = Modifier
+            .padding(end = 12.dp)
+            .background(background, RoundedCornerShape(50))
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        style = MaterialTheme.typography.labelMedium,
+        color = accent,
+    )
 }

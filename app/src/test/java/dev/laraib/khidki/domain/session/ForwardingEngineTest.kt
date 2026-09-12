@@ -4,6 +4,7 @@ import dev.laraib.khidki.domain.auth.AuthLockoutTracker
 import dev.laraib.khidki.domain.auth.DefaultRequestAuthenticator
 import dev.laraib.khidki.domain.budget.SmsBudgetLedger
 import dev.laraib.khidki.domain.clock.FakeClock
+import dev.laraib.khidki.domain.filter.ForwardingPolicy
 import dev.laraib.khidki.domain.filter.Re2RuleMatcher
 import dev.laraib.khidki.domain.model.AppState
 import dev.laraib.khidki.domain.model.AuditEvent
@@ -248,7 +249,8 @@ class ForwardingEngineTest {
 
     @Test
     fun armTimedWindow_multiForwardStaysArmedAndIncrementsCount() {
-        engine.armTimedWindow(configId, 900)
+        val policy = ForwardingPolicy(otpBanks = true)
+        engine.armTimedWindow(requester, 900, policy)
 
         val first = engine.handleCandidate("VM-HDFCBK", "Your OTP is 654321")
         assertTrue(first is CandidateHandleResult.Forwarded)
@@ -257,7 +259,7 @@ class ForwardingEngineTest {
         assertEquals(SessionOrigin.TIMED, afterFirst.origin)
         assertEquals(1, afterFirst.forwardCount)
 
-        val second = engine.handleCandidate("VM-HDFCBK", "654321 again")
+        val second = engine.handleCandidate("VM-HDFCBK", "OTP 112233 for login")
         assertTrue(second is CandidateHandleResult.Forwarded)
         assertEquals(2, (second as CandidateHandleResult.Forwarded).session.forwardCount)
         assertEquals(2, smsTransport.sentMessages.size)
@@ -290,6 +292,25 @@ class ForwardingEngineTest {
         engine.refreshSessions()
 
         assertNull(sessionRepository.getActiveSession())
+    }
+
+    @Test
+    fun policyArm_epfDropsWhenOnlyBanksEnabled() {
+        val banksOnly = ForwardingPolicy(otpBanks = true)
+        engine.armTimedWindow(requester, 900, banksOnly)
+
+        val result = engine.handleCandidate("VM-EPFOHO", "Your EPF OTP is 123456")
+        assertEquals(CandidateHandleResult.NoMatch, result)
+        assertTrue(smsTransport.sentMessages.isEmpty())
+    }
+
+    @Test
+    fun policyArm_epfForwardsWhenGovernmentEnabled() {
+        val government = ForwardingPolicy(otpGovernment = true)
+        engine.armTimedWindow(requester, 900, government)
+
+        val result = engine.handleCandidate("VM-EPFOHO", "Your EPF OTP is 123456")
+        assertTrue(result is CandidateHandleResult.Forwarded)
     }
 
     @Test
