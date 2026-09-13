@@ -1,0 +1,16 @@
+Khidki forwards SMS you choose — including everything, or narrower OTP and alert categories — to up to five people you configure. Forwarding runs only while you start a window (15 minutes to 2 hours, or until you stop).
+
+Nothing leaves the phone except messages you allow. There is no internet permission, no account, and no cloud.
+
+Features:
+• People list with per-person filters (Shopping, Banks, UPI, Government, alerts, All SMS, named senders)
+• Start / stop from Home
+• Until I stop duration
+• Ongoing notification with Stop forwarding and Pause
+• SMS only (not RCS)
+
+Not on Google Play. GitHub Releases APKs are signed by the developer; F-Droid builds are signed by F-Droid. The two cannot update each other in place.
+
+Sideloaded SMS apps may get a Play Protect warning. That is Google’s sideload heuristic, not hidden tracking. Prefer F-Droid or adb install for testers you trust.
+
+Never use live bank OTPs when testing.

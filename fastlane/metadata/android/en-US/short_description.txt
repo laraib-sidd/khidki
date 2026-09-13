@@ -1,0 +1,1 @@
+On-device SMS forwarding to people you choose, only while a window is open.

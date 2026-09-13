@@ -1,0 +1,129 @@
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
+}
+
+android {
+    namespace = "dev.laraib.khidki"
+    compileSdk = 36
+
+    defaultConfig {
+        applicationId = "dev.laraib.khidki"
+        minSdk = 31
+        targetSdk = 36
+        versionCode = 39
+        versionName = "1.5.1"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug-keystore/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+        create("release") {
+            val keystoreFile = file("release-keystore/release.keystore")
+            if (keystoreFile.exists()) {
+                storeFile = keystoreFile
+                val storePassword = System.getenv("KHIDKI_RELEASE_STORE_PASSWORD")
+                val keyAlias = System.getenv("KHIDKI_RELEASE_KEY_ALIAS")
+                val keyPassword = System.getenv("KHIDKI_RELEASE_KEY_PASSWORD")
+                require(!storePassword.isNullOrBlank() && !keyAlias.isNullOrBlank() && !keyPassword.isNullOrBlank()) {
+                    "Release keystore present but KHIDKI_RELEASE_STORE_PASSWORD, KHIDKI_RELEASE_KEY_ALIAS, and KHIDKI_RELEASE_KEY_PASSWORD must be set"
+                }
+                this.storePassword = storePassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig =
+                if (signingConfigs.getByName("release").storeFile?.exists() == true) {
+                    signingConfigs.getByName("release")
+                } else {
+                    signingConfigs.getByName("debug")
+                }
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+        }
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+            isMinifyEnabled = false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+    room {
+        schemaDirectory("$projectDir/schemas")
+    }
+    sourceSets {
+        getByName("test") {
+            assets.srcDir("$projectDir/schemas")
+        }
+    }
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+}
+
+tasks.withType<Test> {
+    systemProperty("khidki.manifest", file("src/main/AndroidManifest.xml").absolutePath)
+}
+
+dependencies {
+    implementation(libs.coroutines.core)
+    implementation(libs.coroutines.android)
+    implementation(platform(libs.compose.bom))
+    implementation(libs.compose.ui)
+    implementation(libs.compose.ui.tooling.preview)
+    implementation(libs.compose.material3)
+    implementation(libs.compose.icons)
+    implementation(libs.activity.compose)
+    implementation(libs.lifecycle.runtime.compose)
+    implementation(libs.lifecycle.viewmodel.compose)
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
+    implementation("androidx.core:core-ktx:1.15.0")
+    implementation(libs.core.splashscreen)
+    implementation(libs.re2j)
+    implementation(libs.libphonenumber)
+    implementation(libs.security.crypto)
+    implementation(libs.biometric)
+    implementation(libs.fragment.ktx)
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
+    testImplementation(libs.junit)
+    testImplementation(libs.coroutines.test)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.room.testing)
+    debugImplementation(libs.compose.ui.tooling.preview)
+}
