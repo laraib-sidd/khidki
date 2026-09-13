@@ -1,0 +1,1 @@
+Omit AGP dependency-metadata APK signing block (F-Droid check apk).

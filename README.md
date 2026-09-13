@@ -15,7 +15,7 @@ Play Protect may warn on **sideloaded** SMS apps — see [`docs/PLAY_PROTECT.md`
 
 See [`docs/INSTALL.md`](docs/INSTALL.md). Short version:
 
-1. Download `khidki-1.0.1-*.apk` from GitHub Releases (**Latest**), or install from F-Droid when available.
+1. Download `khidki-1.0.2-*.apk` from GitHub Releases (**Latest**), or install from F-Droid when available.
 2. If switching channel or upgrading from an older internal build or `dev.laraib.khidki.debug`, uninstall first.
 3. **App info → ⋮ → Allow restricted settings** (Android 15+), then grant SMS + notifications.
 4. Realme / ColorOS: **Auto-start** on, battery **Unrestricted**.

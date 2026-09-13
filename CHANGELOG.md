@@ -4,6 +4,11 @@ All notable changes to Khidki are documented here.
 
 ## [Unreleased]
 
+## [1.0.2] — 2026-09-13
+
+### Fixed
+- Omit AGP dependency-metadata signing block so F-Droid `check apk` accepts the APK.
+
 ## [1.0.1] — 2026-09-13
 
 ### Fixed
