@@ -7,6 +7,10 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 KEYSTORE_DIR="$ROOT/app/release-keystore"
 KEYSTORE_FILE="$KEYSTORE_DIR/release.keystore"
 
+STORE_PASSWORD="${KHIDKI_RELEASE_STORE_PASSWORD:?Set KHIDKI_RELEASE_STORE_PASSWORD}"
+KEY_PASSWORD="${KHIDKI_RELEASE_KEY_PASSWORD:?Set KHIDKI_RELEASE_KEY_PASSWORD}"
+KEY_ALIAS="${KHIDKI_RELEASE_KEY_ALIAS:?Set KHIDKI_RELEASE_KEY_ALIAS}"
+
 mkdir -p "$KEYSTORE_DIR"
 
 if [[ -f "$KEYSTORE_FILE" ]]; then
@@ -17,12 +21,12 @@ fi
 keytool -genkeypair \
   -v \
   -keystore "$KEYSTORE_FILE" \
-  -alias khidki \
+  -alias "$KEY_ALIAS" \
   -keyalg RSA \
   -keysize 2048 \
   -validity 10000 \
-  -storepass khidki-release \
-  -keypass khidki-release \
+  -storepass "$STORE_PASSWORD" \
+  -keypass "$KEY_PASSWORD" \
   -dname "CN=Khidki, OU=Personal, O=Laraib, L=India, C=IN"
 
 echo "Created $KEYSTORE_FILE"

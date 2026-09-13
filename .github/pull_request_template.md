@@ -25,4 +25,4 @@
 ## Physical Device Testing
 
 - [ ] Not applicable (CI/docs only)
-- [ ] Tested on Realme GT 6T (Android 16)
+- [ ] Tested on physical device

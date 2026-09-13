@@ -46,21 +46,12 @@ Use conventional prefixes:
 - **Never** use live bank OTPs in tests.
 - Read locked decisions in `docs/DECISIONS.md` before changing product behavior.
 
-## Model / Worker Coordination
-
-- Live handover: `docs/MODEL_MEMORY.md` (append-only for history sections)
-- Phase tracker + **blockers**: `docs/COORDINATION.md`
-- Physical test status: `docs/TEST_RESULTS.md`, `docs/PHYSICAL_TEST.md`
-- Execution plans: `docs/plans/`
-
-Update `docs/MODEL_MEMORY.md` before switching models or ending a work session.
-
 ## Releases
 
 See `docs/RELEASE.md` for the full runbook.
 
-- **Auto releases**: every `main` push creates tag `v<version>-b<N>` + GitHub Release (e.g. `v1.1.0-b17`).
-- **Manual milestones**: push a `v*` git tag (e.g. `v1.2.0`) to publish at that tag.
-- APKs are named `khidki-<version>-b<build>-<sha>.apk` with `.sha256` checksums.
-- Install target: **Latest** on GitHub Releases; record the `v*-b<N>` tag in physical test notes.
-- Debug APKs use the committed deterministic keystore in `app/debug-keystore/` unless `KHIDKI_PREVIEW_KEYSTORE_BASE64` is set in GitHub secrets.
+- **Public releases**: push a `v*` git tag (e.g. `v1.0.0`) after CI secrets are configured.
+- CI publishes a signed GitHub Release only for tag pushes.
+- APKs are named `khidki-<version>-b<code>-<sha>.apk` with `.sha256` checksums.
+- Install target: **Latest** on GitHub Releases.
+- Local `assembleRelease` may fall back to the debug keystore when no release keystore is present.

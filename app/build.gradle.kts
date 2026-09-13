@@ -14,8 +14,8 @@ android {
         applicationId = "dev.laraib.khidki"
         minSdk = 31
         targetSdk = 36
-        versionCode = 39
-        versionName = "1.5.1"
+        versionCode = 1
+        versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

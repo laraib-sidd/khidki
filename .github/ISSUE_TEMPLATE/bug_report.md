@@ -14,7 +14,7 @@ What broke?
 - Device:
 - Android version:
 - Khidki version / APK source:
-- Install method: sideload from GitHub Releases `preview`
+- Install method: sideload from GitHub Releases or F-Droid
 
 ## Steps to Reproduce
 
@@ -32,4 +32,4 @@ What broke?
 
 ## Security Note
 
-Do **not** paste live bank OTPs, full phone numbers, or generated `req` passwords.
+Do **not** paste live bank OTPs or full phone numbers.

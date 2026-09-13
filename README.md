@@ -1,5 +1,9 @@
 # Khidki
 
+<p align="center">
+  <img src="docs/brand/khidki-mark.png" alt="Khidki logo" width="128" />
+</p>
+
 On-device Android app that forwards **SMS you choose** (including everything, or OTP categories) to people you configure, only while a window you start is open. No server. No `INTERNET` permission.
 
 **License:** [GPL-3.0-or-later](LICENSE)  
@@ -7,14 +11,12 @@ On-device Android app that forwards **SMS you choose** (including everything, or
 
 Play Protect may warn on **sideloaded** SMS apps — see [`docs/PLAY_PROTECT.md`](docs/PLAY_PROTECT.md). F-Droid installs are not sideloads.
 
-Older docs in this repo may mention a private tree or personal test setup. Treat them as historical.
-
 ## Install
 
 See [`docs/INSTALL.md`](docs/INSTALL.md). Short version:
 
-1. Download `khidki-1.5.1-*.apk` from GitHub Releases (**Latest**), or install from F-Droid when available.
-2. If switching channel or upgrading from `dev.laraib.khidki.debug`, uninstall first.
+1. Download `khidki-1.0.0-*.apk` from GitHub Releases (**Latest**), or install from F-Droid when available.
+2. If switching channel or upgrading from an older internal build or `dev.laraib.khidki.debug`, uninstall first.
 3. **App info → ⋮ → Allow restricted settings** (Android 15+), then grant SMS + notifications.
 4. Realme / ColorOS: **Auto-start** on, battery **Unrestricted**.
 5. Open Khidki → welcome (first person) → **Rules** for more people → **Start forwarding** on Home (duration or Until I stop).
@@ -42,6 +44,9 @@ bash scripts/audit_manifest.sh
 Release keystore (one-time, for GitHub Release signing only — never commit it):
 
 ```bash
+export KHIDKI_RELEASE_STORE_PASSWORD=...
+export KHIDKI_RELEASE_KEY_PASSWORD=...
+export KHIDKI_RELEASE_KEY_ALIAS=...
 bash scripts/create_release_keystore.sh
 ```
 

@@ -4,116 +4,17 @@ All notable changes to Khidki are documented here.
 
 ## [Unreleased]
 
-## [1.5.1] — 2026-09-13
+## [1.0.0] — 2026-09-13
+
+First public FOSS release.
 
 ### Added
-- GPL-3.0-or-later `LICENSE`
-- Fastlane listing metadata for F-Droid
-- Draft F-Droid build recipe (`docs/fdroid/dev.laraib.khidki.yml`)
-
-### Changed
-- Static `versionCode` 39 (F-Droid update check cannot run Gradle env vars)
-- Public-repo docs: GitHub Releases and F-Droid; two signing keys; Play Store still out
-
-## [1.5.0] — 2026-09-12
-
-### Added
-- **People** (up to 5): name + number + per-person filters; one Start window fans out to every enabled match
-- **Until I stop** duration — window stays open until Stop or Pause
-- Persistent **ongoing notification** with **Stop forwarding** and **Pause Khidki** actions; tap opens Home
-- Room DB v4: `destinationSnapshotsJson`, `untilStop` on sessions
-- Tests: Mom=banks / Brother=shopping split; EPF Government-only; until-stop does not auto-expire; notification actions
-
-### Changed
-- Rules tab is a people list with per-person filter sheet (All SMS first-class)
-- Welcome creates first person; Settings drops standalone trusted-number field
-- Refreshed window + outgoing-slip logo (`ic_khidki_mark`, launcher foreground, notification silhouette)
-- Legacy global trusted number migrates into first destination profile
-
-## [1.4.0] — 2026-09-12
-
-### Added
-- Global trusted number (Settings + first-run welcome)
-- Category-based forwarding rules (kind + domain): Shopping, Banks, UPI, Government, alerts, All SMS, custom senders
-- `ForwardingPresets` classifier — EPF is Government, not Banks
-- Single **Start forwarding** / **Stop** on Home (no separate master + arm)
-- `docs/PLAY_PROTECT.md` — honest Play Protect guidance and appeal path
-- CI support for `KHIDKI_RELEASE_KEYSTORE_BASE64` release signing
-
-### Changed
-- Retired SMS `req` command flow — timed in-app arm only; inbound SMS always evaluated as forward candidates
-- Rules tab is category toggles, not regex recipes
-- New window + outgoing-slip launcher mark
-- Room DB v3: `forwardingPolicyJson` on sessions
-
-### Removed
-- Access-code / `CommandRevealDialog` UI
-- Per-rule requester and regex setup from default path
-
-## [1.3.0] — 2026-09-12
-
-### Added
-- First-run welcome sheet (what Khidki does, SMS-only, setup)
-- Splash screen and refined launcher icon
-- Rule enable/disable toggle on Configs
-- Notification permission status in Settings
-- Advanced tools (filter tester, technical activity log) — triple-tap version to unlock
-- `docs/INSTALL.md` for sharing with recipients
-- `scripts/create_release_keystore.sh` for stable release signing
-
-### Changed
-- **Home** tab (was Status) with human-readable **Recent activity** feed
-- Polished copy throughout — no “sideload” / “diagnostic stream” on default path
-- Dark-mode-aware status colors
-- Snackbar feedback for errors and cancelled biometric auth
-- Release builds prefer `app/release-keystore/` when present
-
-### Physical testing (2026-09-11, Realme GT 6T)
-
-- **Pass:** Sideload permissions, Phase 6 UI, SMS receive (Blinkit OTP), diagnostic stream
-- **Blocked:** End-to-end OTP forward — requester uses RCS only; `req` never received
-- **Clarified:** Master ON ≠ auto-forward; `NoActiveSession` when OTP arrives without armed window
-- **Proposed:** Phase 7 manual "Open window" button for RCS-only requester scenario
-
-### Added (pending release tag)
-
-- **Phase 7:** Timed forwarding window on Status tab (credential-gated, 15m–2h, multi-forward, one config at a time)
-- **Phase 7:** Editable forwarding rules; requester number change voids credentials and regenerates access code
-- Phase 6 Material 3 UI/UX revamp (Status hero card, Config bottom sheet, History badges, Settings regex tester)
-- Production-standard release pipeline: CI-gated publish, traceable APK names, SHA256 checksums, release metadata
-
-### Changed
-
-- Release pipeline: single `ci` workflow publishes `v<version>-b<N>` GitHub Release on every `main` push; removed `preview` rolling tag
-- Room DB v2: `sessions.origin` + `sessions.forwardCount` for TIMED session persistence
-- Version `1.1.0` with CI-driven `versionCode` for reliable sideload updates
-- Rolling `preview` release is the install target (`docs/RELEASE.md`)
-
-## [1.1.0-preview] — 2026-09-11
-
-### Added
-- Material 3 UI overhaul ([PR #11](https://github.com/laraib-sidd/khidki/pull/11))
-- CI-gated release workflow with `khidki-*-debug-b*-*.apk` artifacts
-- `docs/RELEASE.md` deployment runbook
-
-### Changed
-- App version `1.0.0` → `1.1.0`
-- Dependabot removed (closed bot PRs #2–#6)
-
-## [1.0.0-preview] — 2026-09-11
-
-### Added
-- Production CI/CD with PR validation, manifest security audit, and split release workflow
-- Deterministic debug keystore for sideload APK updates without reinstall
-- Sideload permission pre-flight card with App Info deep link (Android 15/16)
-- Live diagnostic event log on Status tab for on-device debugging
-- One-tap copy for generated `req` commands
-- Real session cancellation with Cancel Active Window button
-- RE2 regex validation and 20-configuration limit in UI
-- Persistent Room-backed lockouts, SMS budget, and duplicate fingerprint dedup
-- Graceful status notifications when window arms or SMS forwards
-- Coordination docs: `docs/COORDINATION.md`, `docs/MODEL_MEMORY.md`
+- On-device SMS forwarding to up to five people with per-person filters (Shopping, Banks, UPI, Government, alerts, All SMS, named senders)
+- Timed forwarding windows (15 minutes to 2 hours, or Until I stop)
+- Ongoing notification with Stop forwarding
+- GPL-3.0-or-later license
+- Fastlane listing metadata and draft F-Droid build recipe (`docs/fdroid/dev.laraib.khidki.yml`)
 
 ### Security
-- Manifest audit fails CI if `INTERNET` permission is merged
-- Lockout and daily SMS part budget survive device reboot
+- No `INTERNET` permission
+- Manifest audit fails CI if network permission is merged

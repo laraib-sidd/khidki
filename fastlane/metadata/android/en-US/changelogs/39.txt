@@ -1,3 +1,0 @@
-FOSS listing drop: GPL-3.0-or-later, public source, F-Droid metadata.
-
-v1.5 people (max 5), Until I stop, shade Stop/Pause, category filters including All SMS.

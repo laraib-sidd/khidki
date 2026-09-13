@@ -4,13 +4,13 @@ Khidki runs entirely on your phone. No analytics, no cloud, no INTERNET permissi
 
 ## Stored on device
 
-- Configuration labels, requester numbers, filter patterns.
-- Keystore-backed password verifiers (not plaintext passwords).
-- Session metadata and bounded history (timestamps, outcomes — not message bodies).
+- People names and phone numbers you configure.
+- Filter selections and session metadata.
+- Bounded history (timestamps, outcomes — not message bodies).
 
 ## Not stored in app history
 
-Passwords, OTPs, raw SMS bodies, or commands.
+OTPs, raw SMS bodies, or message content.
 
 ## Other copies
 
@@ -18,4 +18,4 @@ Android may keep outgoing SMS in the system SMS provider. Excluding bodies from 
 
 ## Disclosure
 
-You enable unattended forwarding of whole messages to a fixed number you configure. Costs depend on your SMS plan.
+You enable unattended forwarding of whole messages to numbers you configure. Costs depend on your SMS plan.

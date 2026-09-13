@@ -1,0 +1,1 @@
+First public FOSS release: people list with filters, timed forwarding windows, Until I stop, and shade Stop.

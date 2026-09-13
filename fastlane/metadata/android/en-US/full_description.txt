@@ -6,7 +6,7 @@ Features:
 • People list with per-person filters (Shopping, Banks, UPI, Government, alerts, All SMS, named senders)
 • Start / stop from Home
 • Until I stop duration
-• Ongoing notification with Stop forwarding and Pause
+• Ongoing notification with Stop forwarding
 • SMS only (not RCS)
 
 Not on Google Play. GitHub Releases APKs are signed by the developer; F-Droid builds are signed by F-Droid. The two cannot update each other in place.
