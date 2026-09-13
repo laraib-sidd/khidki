@@ -4,6 +4,11 @@ All notable changes to Khidki are documented here.
 
 ## [Unreleased]
 
+## [1.0.1] — 2026-09-13
+
+### Fixed
+- Release builds no longer require a `signingConfigs.release` block, so F-Droid `assembleRelease` works without the owner keystore.
+
 ## [1.0.0] — 2026-09-13
 
 First public FOSS release.

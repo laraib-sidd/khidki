@@ -14,8 +14,8 @@ android {
         applicationId = "dev.laraib.khidki"
         minSdk = 31
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -26,10 +26,10 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
-        create("release") {
-            val keystoreFile = file("release-keystore/release.keystore")
-            if (keystoreFile.exists()) {
-                storeFile = keystoreFile
+        val releaseKeystore = file("release-keystore/release.keystore")
+        if (releaseKeystore.exists()) {
+            create("release") {
+                storeFile = releaseKeystore
                 val storePassword = System.getenv("KHIDKI_RELEASE_STORE_PASSWORD")
                 val keyAlias = System.getenv("KHIDKI_RELEASE_KEY_ALIAS")
                 val keyPassword = System.getenv("KHIDKI_RELEASE_KEY_PASSWORD")
@@ -45,12 +45,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig =
-                if (signingConfigs.getByName("release").storeFile?.exists() == true) {
-                    signingConfigs.getByName("release")
-                } else {
-                    signingConfigs.getByName("debug")
-                }
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

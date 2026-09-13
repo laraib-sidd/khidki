@@ -13,9 +13,9 @@ Package ID is `dev.laraib.khidki` on both. **Different certificates** — uninst
 
 | Item | Example |
 |---|---|
-| **Git tag** | `v1.0.0` |
-| **APK name** | `khidki-1.0.0-b1-<sha>.apk` |
-| **versionName / versionCode** | Baked in `app/build.gradle.kts` (`1.0.0` / `1`) |
+| **Git tag** | `v1.0.1` |
+| **APK name** | `khidki-1.0.1-b2-<sha>.apk` |
+| **versionName / versionCode** | Baked in `app/build.gradle.kts` (`1.0.1` / `2`) |
 
 - Each GitHub release is **immutable**
 - CI publishes a signed release **only** when you push a `v*` tag
@@ -24,8 +24,8 @@ Package ID is `dev.laraib.khidki` on both. **Different certificates** — uninst
 Public release:
 
 ```bash
-git tag -a v1.0.0 -m "Khidki 1.0.0"
-git push origin v1.0.0
+git tag -a v1.0.1 -m "Khidki 1.0.1"
+git push origin v1.0.1
 ```
 
 CI runs on the tag and publishes a release at that tag name. All four `KHIDKI_RELEASE_*` secrets must be set first or the job fails closed.
@@ -39,7 +39,7 @@ test --> assemble --> audit_manifest --> publish-github-release (tags only)
 ## Install (GitHub)
 
 1. Open [GitHub Releases](https://github.com/laraib-sidd/khidki/releases) → **Latest**
-2. Download `khidki-1.0.0-*.apk` (package `dev.laraib.khidki`)
+2. Download `khidki-1.0.1-*.apk` (package `dev.laraib.khidki`)
 3. See `docs/INSTALL.md`
 
 ## Secrets (GitHub Actions only — never commit)
@@ -65,7 +65,7 @@ Keep `app/release-keystore/` gitignored.
 ## Local package (optional)
 
 ```bash
-export KHIDKI_VERSION_NAME=1.0.0
+export KHIDKI_VERSION_NAME=1.0.1
 bash scripts/prepare_release_apk.sh
 ls -la release-artifacts/
 ```

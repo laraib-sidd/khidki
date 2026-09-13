@@ -1,10 +1,3 @@
-# Copy this file to metadata/dev.laraib.khidki.yml in a fork of
-# https://gitlab.com/fdroid/fdroiddata and open a merge request
-# AFTER https://github.com/laraib-sidd/khidki is public and tag v1.0.0 exists.
-#
-# F-Droid signs with its own key. GitHub Releases use the owner key.
-# Users cannot in-place update between channels.
-
 Categories:
   - Phone & SMS
   - Security
@@ -21,14 +14,14 @@ RepoType: git
 Repo: https://github.com/laraib-sidd/khidki.git
 
 Builds:
-  - versionName: "1.0.0"
-    versionCode: 1
-    commit: v1.0.0
+  - versionName: 1.0.1
+    versionCode: 2
+    commit: v1.0.1
     subdir: app
     gradle:
       - yes
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: "1.0.0"
-CurrentVersionCode: 1
+CurrentVersion: 1.0.1
+CurrentVersionCode: 2

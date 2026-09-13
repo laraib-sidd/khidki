@@ -17,8 +17,8 @@ Those builds share package `dev.laraib.khidki` but **not** the signing certifica
 
 ### 1. Download
 
-1. Open GitHub Releases → **Latest** (e.g. `v1.0.0`).
-2. Download `khidki-1.0.0-*.apk`.
+1. Open GitHub Releases → **Latest** (e.g. `v1.0.1`).
+2. Download `khidki-1.0.1-*.apk`.
 3. Optional: verify with the bundled `.sha256` file.
 
 ### 2. Uninstall old builds (if needed)
@@ -64,7 +64,7 @@ Sideloaded SMS apps may show a Play Protect warning. That is a platform heuristi
 Trusted testers can skip the dialog with:
 
 ```bash
-adb install khidki-1.0.0-*.apk
+adb install khidki-1.0.1-*.apk
 ```
 
 Do not turn Play Protect off for random APKs.

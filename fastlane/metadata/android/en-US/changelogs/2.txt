@@ -1,0 +1,1 @@
+F-Droid build: assembleRelease works without the developer release keystore.
