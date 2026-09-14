@@ -12,14 +12,16 @@ AutoName: Khidki
 
 RepoType: git
 Repo: https://github.com/laraib-sidd/khidki.git
+AllowedAPKSigningKeys: 82d7dc336fbf6910324b76fa8f0070b5a8eecd79d15af0640fde4cca2e4efd38
 
 Builds:
   - versionName: 1.0.2
     versionCode: 3
-    commit: v1.0.2
+    commit: 50604609632d6b13c7c03fa0a650a057c283ab28
     subdir: app
     gradle:
       - yes
+    binary: https://github.com/laraib-sidd/khidki/releases/download/v1.0.2/khidki-1.0.2-b3-5060460.apk
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
